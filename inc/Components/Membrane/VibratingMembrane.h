@@ -42,15 +42,22 @@ public:
             for (int x = 0; x < gridSize; ++x) {
                 if (!isInsideCircle(x, y, center, center, radius))
                     continue;
+
                 const float value = current[y][x];
-                const float logValue =
-                        std::log10(1.0f + std::abs(value) * 100.0f) /
-                        std::log10(101.0f);
-                const float scaled = 0.5f + 0.5f * std::copysign(
-                                         logValue, value);
-                const auto brightness = static_cast<uint8_t>(juce::jlimit(
-                        0.0f, 1.0f, 0.5f + 0.5f * scaled) * 255.0f);
-                g.setColour(juce::Colour(brightness, brightness, brightness));
+                const float logValue = std::log10(
+                                           1.0f + std::abs(value) * 100.0f) /
+                                       std::log10(101.0f);
+                const float scaled = juce::jlimit(0.0f, 1.0f, logValue);
+
+                juce::Colour cellColour;
+                if (value >= 0.0f) {
+                    cellColour = juce::Colour::fromFloatRGBA(
+                        0.0f, scaled, 0.0f, 1.0f);
+                } else {
+                    cellColour = juce::Colour::fromFloatRGBA(
+                        scaled, 0.0f, 0.0f, 1.0f);
+                }
+                g.setColour(cellColour);
                 g.fillRect(static_cast<float>(x) * cellWidth - 1,
                            static_cast<float>(y) * cellHeight - 1,
                            cellWidth + 1,
@@ -78,12 +85,10 @@ public:
             (static_cast<float>(e.y) / squareBounds.getHeight()) * static_cast<
                 float>(gridSize));
 
-        const int center = gridSize / 2;
-
         /// Impulse at the mouse position
-        if (const int radius = gridSize / 2 - 1;
+        if (const int center = gridSize / 2;
             x > 1 && x < gridSize - 1 && y > 1 && y < gridSize - 1 &&
-            isInsideCircle(x, y, center, center, radius)) {
+            isInsideCircle(x, y, center, center, gridSize / 2 - 1)) {
             current[y][x] = 1.0f;
             previous[y][x] = 0.5f;
         }
