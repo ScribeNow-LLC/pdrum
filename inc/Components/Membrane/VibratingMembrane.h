@@ -32,7 +32,9 @@ public:
                     continue;
 
                 float value = current[y][x];
-                uint8_t brightness = static_cast<uint8_t>(juce::jlimit(0.0f, 1.0f, 0.5f + 0.5f * value) * 255.0f);
+                float logValue = std::log10(1.0f + std::abs(value) * 100.0f) / std::log10(101.0f);
+                float scaled = 0.5f + 0.5f * std::copysign(logValue, value);
+                uint8_t brightness = static_cast<uint8_t>(juce::jlimit(0.0f, 1.0f, 0.5f + 0.5f * scaled) * 255.0f);
                 g.setColour(juce::Colour(brightness, brightness, brightness));
                 g.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
             }
@@ -59,39 +61,45 @@ public:
 private:
     void timerCallback() override
     {
-        const float damping = 0.996f; // closer to 1 = slower decay
-        const float c2 = 0.25f;       // wave propagation constant (stability limit)
+        const int timeStepsPerFrame = 10; // simulate 4x faster
+        // const float damping = 0.996f;
+        const float damping = 0.99f;
+        const float c2 = 0.25f;
 
-        const int center = gridSize / 2;
-        const int radius = gridSize / 2 - 1;
-
-        for (int y = 1; y < gridSize - 1; ++y)
+        for (int step = 0; step < timeStepsPerFrame; ++step)
         {
-            for (int x = 1; x < gridSize - 1; ++x)
+            const int center = gridSize / 2;
+            const int radius = gridSize / 2 - 1;
+
+            for (int y = 1; y < gridSize - 1; ++y)
             {
-                if (!isInsideCircle(x, y, center, center, radius))
+                for (int x = 1; x < gridSize - 1; ++x)
                 {
-                    next[y][x] = 0.0f; // fixed edge
-                    continue;
+                    if (!isInsideCircle(x, y, center, center, radius))
+                    {
+                        next[y][x] = 0.0f;
+                        continue;
+                    }
+
+                    float laplacian = current[y + 1][x] + current[y - 1][x]
+                                    + current[y][x + 1] + current[y][x - 1]
+                                    - 4.0f * current[y][x];
+
+                    next[y][x] = damping * (
+                        2.0f * current[y][x]
+                        - previous[y][x]
+                        + c2 * laplacian
+                    );
                 }
-
-                float laplacian = current[y + 1][x] + current[y - 1][x]
-                                + current[y][x + 1] + current[y][x - 1]
-                                - 4.0f * current[y][x];
-
-                next[y][x] = damping * (
-                    2.0f * current[y][x]
-                    - previous[y][x]
-                    + c2 * laplacian
-                );
             }
-        }
 
-        std::swap(previous, current);
-        std::swap(current, next);
+            std::swap(previous, current);
+            std::swap(current, next);
+        }
 
         repaint();
     }
+
 
     void resizeGrid(int size)
     {
