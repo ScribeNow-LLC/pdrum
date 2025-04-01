@@ -7,6 +7,7 @@
  */
 PDrumEditor::PDrumEditor(PDrum &p) : AudioProcessorEditor(p), processor(p) {
     addAndMakeVisible(midiKeyboardComponent);
+    addAndMakeVisible(membrane);
     midiKeyboardComponent.setMidiChannel(2);
     midiKeyboardState.addListener(&processor.getMidiMessageCollector());
     setSize(500, 400);
@@ -32,6 +33,8 @@ void PDrumEditor::resized() {
 
     const auto keyboardArea = area.removeFromBottom(80).reduced(8);
     midiKeyboardComponent.setBounds(keyboardArea);
+
+    membrane.setBounds(area.reduced(8));
 }
 
 /**

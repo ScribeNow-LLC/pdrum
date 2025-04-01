@@ -3,6 +3,7 @@
 
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_utils/juce_audio_utils.h>
+#include <Components/Membrane/VibratingMembrane.h>
 
 #include "PDrum.h"
 
@@ -36,6 +37,8 @@ public:
 private:
     /** Reference to the PDrum processor */
     PDrum &processor;
+
+    VibratingMembrane membrane;
 
     /** MIDI keyboard state */
     juce::MidiKeyboardState midiKeyboardState;
