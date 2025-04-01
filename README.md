@@ -1,2 +1,1 @@
-# pdrum
-physical drum model
+# WaveTimbre
