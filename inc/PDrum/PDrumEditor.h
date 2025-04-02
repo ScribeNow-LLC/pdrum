@@ -1,5 +1,5 @@
-#ifndef WAVE_TIMBRE_EDITOR_H
-#define WAVE_TIMBRE_EDITOR_H
+#ifndef P_DRUM_EDITOR_H
+#define P_DRUM_EDITOR_H
 
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_utils/juce_audio_utils.h>
@@ -63,4 +63,4 @@ private:
     void timerCallback() override;
 };
 
-#endif // WAVE_TIMBRE_EDITOR_H
+#endif // P_DRUM_EDITOR_H
