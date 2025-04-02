@@ -26,6 +26,7 @@ PDrum::PDrum() : AudioProcessor(BusesProperties().withOutput(
  */
 void PDrum::prepareToPlay(const double sampleRate, int samplesPerBlock) {
     midiMessageCollector.reset(sampleRate);
+    resonator.setParameters(1.0f, 1.0f, static_cast<float>(sampleRate));
 }
 
 /**
@@ -51,14 +52,23 @@ void PDrum::processBlock(juce::AudioBuffer<float> &buffer,
     auto numSamples = buffer.getNumSamples();
     auto numChannels = buffer.getNumChannels();
 
-    float membraneSample = 0.0f;
+    midiMessageCollector.removeNextBlockOfMessages(midiMessages,
+                                                   buffer.getNumSamples());
 
+    for (const auto metadata: midiMessages) {
+        if (const auto &message = metadata.getMessage(); message.isNoteOn()) {
+            membraneModel.exciteCenter(0.9f);
+        }
+    }
+
+    float membraneSample = 0.0f;
+    float resonatorSample = 0.0f;
     for (int sample = 0; sample < numSamples; ++sample) {
         // Update only if the model says to (e.g., every 10 samples internally)
         membraneSample = membraneModel.processSample();
-
+        resonatorSample = resonator.process(membraneSample);
         for (int channel = 0; channel < numChannels; ++channel) {
-            buffer.setSample(channel, sample, membraneSample);
+            buffer.setSample(channel, sample, resonatorSample);
         }
     }
 }

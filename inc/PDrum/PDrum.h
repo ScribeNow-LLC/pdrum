@@ -6,6 +6,8 @@
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <Components/Membrane/VibratingMembraneModel.h>
+#include <Components/Resonator/ModalResonator.h>
+
 /**
  * @brief Audio processor for the PDrum plugin.
  */
@@ -68,7 +70,7 @@ public:
      * @brief Check if the processor accepts MIDI input.
      * @return True if the processor accepts MIDI input, false otherwise.
      */
-    bool acceptsMidi() const override { return false; }
+    bool acceptsMidi() const override { return true; }
 
     /**
      * @brief Check if the processor produces MIDI output.
@@ -148,6 +150,7 @@ private:
     juce::AudioProcessorValueTreeState parameters;
 
     VibratingMembraneModel membraneModel;
+    ModalResonator resonator;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PDrum)
 };

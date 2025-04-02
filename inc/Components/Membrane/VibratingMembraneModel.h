@@ -56,6 +56,16 @@ public:
         }
     }
 
+    /// TODO - add a midi key to slightly change the size
+    void exciteCenter(const float amplitude) {
+        const int centerX = gridResolution / 2;
+        const int centerY = gridResolution / 2;
+        if (const int index = centerY * gridResolution + centerX; isInside[index]) {
+            current[index + 1] = amplitude;
+            previous[index + 1] = amplitude * 0.5f;
+        }
+    }
+
     float processSample() {
         static constexpr int updateInterval = 10;
         static int counter = 0;
@@ -104,7 +114,7 @@ private:
         if (parameterID == "membraneSize") {
             targetDx = newValue / static_cast<float>(gridResolution);
         } else if (parameterID == "membraneTension") {
-            targetC = newValue;
+            /// TODO - implement tension?
         }
     }
 

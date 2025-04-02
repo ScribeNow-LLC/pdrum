@@ -98,7 +98,7 @@ public:
             (relativeY / squareBounds.getHeight()) * static_cast<float>(
                 gridResolution));
 
-        membraneModel.excite(1.0f, x, y);
+        membraneModel.excite(0.9f, x, y);
     }
 
 private:
