@@ -47,7 +47,7 @@ void VibratingMembrane::paint(juce::Graphics &g) {
             const float value = current[index];
             // Logarithmic scaling calculation.
             const float logValue =
-                    std::log10(1.0f + std::abs(value) * 100.0f) / logDenom;
+                    std::log10(1.0f + std::abs(value) * 300.0f) / logDenom;
             const float scaled = juce::jlimit(0.0f, 1.0f, logValue);
             const juce::Colour cellColour =
                     (value >= 0.0f) ? juce::Colour::fromFloatRGBA(0.0f, scaled,
@@ -67,9 +67,9 @@ void VibratingMembrane::paint(juce::Graphics &g) {
         }
     }
     // Draw border and ellipse once.
-    g.setColour(juce::Colours::white);
-    g.drawRect(bounds, 2.0f);
-    g.drawEllipse(squareBounds.reduced(8), 10.0f);
+    // g.setColour(juce::Colours::white);
+    // g.drawRect(bounds, 2.0f);
+    // g.drawEllipse(squareBounds.reduced(8), 10.0f);
 }
 
 /**

@@ -43,9 +43,9 @@ void PDrumEditor::resized() {
     const auto keyboardArea = area.removeFromBottom(80).reduced(8);
     midiKeyboardComponent.setBounds(keyboardArea);
 
-    const auto drumArea =
+    auto drumArea =
             area.removeFromTop(area.getHeight() * 3 / 5).reduced(8);
-    membrane.setBounds(drumArea.reduced(8));
+    membrane.setBounds(drumArea.removeFromLeft(drumArea.getWidth() / 2).reduced(8));
 
     auto knobArea = area.reduced(8);
     const auto sizeKnobArea = knobArea.removeFromLeft(knobArea.getWidth() / 4);
