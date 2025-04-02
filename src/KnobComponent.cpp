@@ -17,6 +17,7 @@ KnobComponent::KnobComponent(juce::AudioProcessorValueTreeState &state,
     title.setText(titleText, juce::dontSendNotification);
     title.setJustificationType(juce::Justification::centred);
     title.setFont(juce::Font(juce::FontOptions(14.0f, juce::Font::bold)));
+    title.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(title);
 }
 
@@ -25,6 +26,6 @@ KnobComponent::KnobComponent(juce::AudioProcessorValueTreeState &state,
  */
 void KnobComponent::resized() {
     auto area = getLocalBounds();
-    title.setBounds(area.removeFromTop(20));
+    title.setBounds(area);
     slider.setBounds(area);
 }

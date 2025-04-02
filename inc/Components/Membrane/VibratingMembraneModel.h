@@ -54,10 +54,10 @@ public:
 
     void excite(const float amplitude, const int x, const int y) {
         if (x > 1 && x < gridResolution - 1 && y > 1 && y < gridResolution - 1) {
-            const int index = y * gridResolution + x;
-            if (isInside[index]) {
+            if (const int index = y * gridResolution + x; isInside[index]) {
                 current[index] = amplitude;
                 previous[index] = amplitude * 0.5f;
+                measureIndex = index;
             }
         }
     }
@@ -65,14 +65,14 @@ public:
     void exciteCenter(const float amplitude) {
         const int centerX = gridResolution / 2;
         const int centerY = gridResolution / 2;
-        const int index = centerY * gridResolution + centerX + 1;
-        if (isInside[index]) {
+        if (const int index = centerY * gridResolution + centerX + 1; isInside[index]) {
             current[index] = amplitude;
             previous[index] = amplitude * 0.5f;
+            measureIndex = index;
         }
     }
 
-    /// TODO - track the position of the mouse used to excite the membrane and measure from there
+    /// TODO - ASDR to prevent pops
     float processSample(const float timeStep) {
         static constexpr int updateInterval = 10;
         static int counter = 0;
@@ -103,8 +103,7 @@ public:
         std::swap(previous, current);
         std::swap(current, next);
 
-        const int centerIndex = (gridResolution / 2) * gridResolution + (gridResolution / 2);
-        return current[centerIndex];
+        return current[measureIndex];
     }
 
     std::vector<float>& getCurrentBuffer() { return bufferA; }
@@ -139,6 +138,8 @@ private:
     float* current = nullptr;
     float* previous = nullptr;
     float* next = nullptr;
+
+    int measureIndex = 0;
 
     juce::AudioProcessorValueTreeState& state;
 
