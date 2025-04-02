@@ -31,6 +31,9 @@ juce_add_plugin(PDrum
 
 target_sources(PDrum PRIVATE
         src/KnobComponent.cpp
+        src/VibratingMembraneModel.cpp
+        src/VibratingMembrane.cpp
+        src/ModalResonator.cpp
         src/PDrum.cpp
         src/PDrumEditor.cpp
 )

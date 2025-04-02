@@ -3,10 +3,10 @@
 
 #include <Components/Knob/KnobComponent.h>
 #include <Components/Membrane/VibratingMembrane.h>
-#include <juce_audio_devices/juce_audio_devices.h>
-#include <juce_audio_processors/juce_audio_processors.h>
 #include <Components/Membrane/VibratingMembraneModel.h>
 #include <Components/Resonator/ModalResonator.h>
+#include <juce_audio_devices/juce_audio_devices.h>
+#include <juce_audio_processors/juce_audio_processors.h>
 
 /**
  * @brief Audio processor for the PDrum plugin.
@@ -33,8 +33,7 @@ public:
     /**
      * @brief Release any resources used by the processor.
      */
-    void releaseResources() override {
-    }
+    void releaseResources() override {}
 
     /**
      * @brief Check if the processor supports the given bus layout.
@@ -99,8 +98,7 @@ public:
     /**
      * @brief Set the current program index.
      */
-    void setCurrentProgram(int) override {
-    }
+    void setCurrentProgram(int) override {}
 
     /**
      * @brief Get the name of a specific program.
@@ -111,20 +109,17 @@ public:
     /**
      * @brief Change the name of a specific program.
      */
-    void changeProgramName(int, const juce::String &) override {
-    }
+    void changeProgramName(int, const juce::String &) override {}
 
     /**
      * @brief Get the state information of the processor.
      */
-    void getStateInformation(juce::MemoryBlock &) override {
-    }
+    void getStateInformation(juce::MemoryBlock &) override {}
 
     /**
      * @brief Set the state information of the processor.
      */
-    void setStateInformation(const void *, int) override {
-    }
+    void setStateInformation(const void *, int) override {}
 
     /**
      * @brief Get the MIDI message collector.
@@ -140,6 +135,10 @@ public:
      */
     juce::AudioProcessorValueTreeState &getParameters() { return parameters; }
 
+    /**
+     * @brief Gets the VibratingMembraneModel.
+     * @return A reference to the VibratingMembraneModel object.
+     */
     VibratingMembraneModel &getModel() noexcept { return membraneModel; }
 
 private:
@@ -149,7 +148,10 @@ private:
     /** Audio processor value tree state for managing parameters. */
     juce::AudioProcessorValueTreeState parameters;
 
+    /** Vibrating membrane model for simulating the drum head. */
     VibratingMembraneModel membraneModel;
+
+    /** Modal resonator for simulating the drum body. */
     ModalResonator resonator;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PDrum)

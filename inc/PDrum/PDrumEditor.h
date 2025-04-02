@@ -1,9 +1,9 @@
 #ifndef P_DRUM_EDITOR_H
 #define P_DRUM_EDITOR_H
 
+#include <Components/Membrane/VibratingMembrane.h>
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_utils/juce_audio_utils.h>
-#include <Components/Membrane/VibratingMembrane.h>
 
 #include "PDrum.h"
 
@@ -58,8 +58,7 @@ private:
 
     /** MIDI keyboard component for user interaction */
     juce::MidiKeyboardComponent midiKeyboardComponent{
-        midiKeyboardState, juce::MidiKeyboardComponent::horizontalKeyboard
-    };
+            midiKeyboardState, juce::MidiKeyboardComponent::horizontalKeyboard};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PDrumEditor)
 

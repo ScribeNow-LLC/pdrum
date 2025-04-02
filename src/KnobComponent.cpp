@@ -25,7 +25,7 @@ KnobComponent::KnobComponent(juce::AudioProcessorValueTreeState &state,
  * @brief Method to resize the component.
  */
 void KnobComponent::resized() {
-    auto area = getLocalBounds();
+    const auto area = getLocalBounds();
     title.setBounds(area);
     slider.setBounds(area);
 }
