@@ -9,12 +9,12 @@ PDrum::PDrum() : AudioProcessor(BusesProperties().withOutput(
                  parameters(*this, nullptr, "PARAMETERS",
                             {
                                 std::make_unique<juce::AudioParameterFloat>(
-                                    "membraneTension", "Tension", 100.0f,
+                                    "membraneTension", "Tension", 10.0f,
                                     300.0f,
                                     100.0f),
                                 std::make_unique<juce::AudioParameterFloat>(
                                     "membraneSize", "Size",
-                                    1.0f, 50.0f, 1.0f),
+                                    0.2f, 10.0f, 1.0f),
                             }),
                  membraneModel(parameters) {
 }
@@ -51,8 +51,11 @@ void PDrum::processBlock(juce::AudioBuffer<float> &buffer,
     auto numSamples = buffer.getNumSamples();
     auto numChannels = buffer.getNumChannels();
 
+    float membraneSample = 0.0f;
+
     for (int sample = 0; sample < numSamples; ++sample) {
-        float membraneSample = membraneModel.processSample();
+        // Update only if the model says to (e.g., every 10 samples internally)
+        membraneSample = membraneModel.processSample();
 
         for (int channel = 0; channel < numChannels; ++channel) {
             buffer.setSample(channel, sample, membraneSample);

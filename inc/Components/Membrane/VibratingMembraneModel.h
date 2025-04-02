@@ -8,62 +8,73 @@
 #include <algorithm>
 #include <cassert>
 
-class VibratingMembraneModel final : public
-        juce::AudioProcessorValueTreeState::Listener {
+class VibratingMembraneModel final : public juce::AudioProcessorValueTreeState::Listener {
 public:
-    /**
-     * @brief Constructor for the VibratingMembraneModel class.
-     */
-    explicit VibratingMembraneModel(
-        juce::AudioProcessorValueTreeState &state) : state(state) {
+    explicit VibratingMembraneModel(juce::AudioProcessorValueTreeState& state)
+        : state(state) {
         initialize();
-        /// Allocate contiguous arrays.
+
         const int totalCells = gridResolution * gridResolution;
-        previous.resize(totalCells, 0.0f);
-        current.resize(totalCells, 0.0f);
-        next.resize(totalCells, 0.0f);
+        bufferA.resize(totalCells, 0.0f);
+        bufferB.resize(totalCells, 0.0f);
+        bufferC.resize(totalCells, 0.0f);
         isInside.resize(totalCells, false);
-        /// Precompute the "inside circle" mask.
+
+        current = bufferA.data();
+        previous = bufferB.data();
+        next = bufferC.data();
+
         const int center = gridResolution / 2;
-        const int radius = gridResolution / 2 - 1;
+        const int radius = center - 1;
         for (int y = 0; y < gridResolution; ++y) {
             for (int x = 0; x < gridResolution; ++x) {
                 const int index = y * gridResolution + x;
-                const int dxCell = x - center;
-                const int dyCell = y - center;
-                isInside[index] =
-                        (dxCell * dxCell + dyCell * dyCell) <= (
-                            radius * radius);
+                const int dx = x - center;
+                const int dy = y - center;
+                isInside[index] = (dx * dx + dy * dy <= radius * radius);
             }
         }
+
         state.addParameterListener("membraneSize", this);
         state.addParameterListener("membraneTension", this);
     }
 
     void initialize() {
-        /// CFL condition: c*dt/dx = 1/sqrt(2)
         dx = physicalSize / static_cast<float>(gridResolution);
         dt = dx / (c * std::sqrt(2.0f));
+        targetDx = dx;
+        targetC = c;
     }
 
     void excite(const float amplitude, const int x, const int y) {
-        // Only add impulse if within valid region and inside circle.
-        if (const int index = y * gridResolution + x;
-            x > 1 && x < gridResolution - 1 && y > 1 && y < gridResolution - 1
-            && isInside[index]) {
-            current[index] = amplitude;
-            previous[index] = amplitude * 0.5f;
+        if (x > 1 && x < gridResolution - 1 && y > 1 && y < gridResolution - 1) {
+            const int index = y * gridResolution + x;
+            if (isInside[index]) {
+                current[index] = amplitude;
+                previous[index] = amplitude * 0.5f;
+            }
         }
     }
 
-    /**
-     * @brief Timer callback function to update the simulation.
-     */
     float processSample() {
+        static constexpr int updateInterval = 10;
+        static int counter = 0;
+        if (++counter < updateInterval)
+            return current[(gridResolution / 2) * gridResolution + (gridResolution / 2)];
+        counter = 0;
+
+        constexpr float smoothingFactor = 0.005f; // slower smoothing for stability
+
+        dx = dx + (targetDx - dx) * smoothingFactor;
+        c = c + (targetC - c) * smoothingFactor;
+
         dt = 1.0f / 44100.0f;
-        const float factor = (c * dt / dx);
-        const float c2 = factor * factor;
-        /// Update inner grid cells (skip border cells).
+        float c2 = std::pow(c * dt / dx, 2.0f);
+
+        // Clamp c2 to ensure it remains stable under the CFL condition
+        const float maxC2 = 0.49f; // Just under 0.5 for 2D grid stability
+        c2 = std::min(c2, maxC2);
+
         for (int y = 1; y < gridResolution - 1; ++y) {
             for (int x = 1; x < gridResolution - 1; ++x) {
                 const int index = y * gridResolution + x;
@@ -71,90 +82,52 @@ public:
                     next[index] = 0.0f;
                     continue;
                 }
-                /// Compute laplacian using contiguous memory indices.
-                const int indexUp = (y - 1) * gridResolution + x;
-                const int indexDown = (y + 1) * gridResolution + x;
-                const int indexLeft = y * gridResolution + (x - 1);
-                const int indexRight = y * gridResolution + (x + 1);
-                const float laplacian = current[indexUp] +
-                                        current[indexDown] +
-                                        current[indexLeft] +
-                                        current[indexRight] -
-                                        4.0f * current[index];
-                /// Use a fixed damping value.
-                constexpr float damping = 0.996f;
-                next[index] =
-                        damping * (
-                            2.0f * current[index] - previous[index] + c2 *
-                            laplacian);
+                const float laplacian = current[index - gridResolution] + current[index + gridResolution] +
+                                        current[index - 1] + current[index + 1] - 4.0f * current[index];
+                next[index] = damping * (2.0f * current[index] - previous[index] + c2 * laplacian);
             }
         }
-        // Swap buffers.
+
         std::swap(previous, current);
         std::swap(current, next);
-        /// Return the sample at the center:
-        const int center = gridResolution / 2;
-        const int index = center * gridResolution + center;
-        return current[index];
+
+        const int centerIndex = (gridResolution / 2) * gridResolution + (gridResolution / 2);
+        return current[centerIndex];
     }
 
-    std::vector<float> &getCurrent() { return current; }
-
-    [[nodiscard]] int getGridResolution() const {
-        return gridResolution;
-    }
-
-    std::vector<bool> &getIsInside() { return isInside; }
+    std::vector<float>& getCurrentBuffer() { return bufferA; }
+    std::vector<bool>& getIsInsideMask() { return isInside; }
+    int getGridResolution() const { return gridResolution; }
 
 private:
-    /**
-     * @brief Handle parameter changes.
-     * @param parameterID The ID of the parameter that changed.
-     * @param newValue The new value of the parameter.
-     */
-    void parameterChanged(const juce::String &parameterID,
-                          const float newValue) override {
+    void parameterChanged(const juce::String& parameterID, float newValue) override {
         if (parameterID == "membraneSize") {
-            physicalSize = newValue;
-            initialize();
-        }
-        if (parameterID == "membraneTension") {
-            c = newValue;
-            initialize();
+            targetDx = newValue / static_cast<float>(gridResolution);
+        } else if (parameterID == "membraneTension") {
+            targetC = newValue;
         }
     }
 
-    /** Grid resolution (number of cells along one side). */
-    const int gridResolution = 50;
-
-    /** Physical size of the membrane in meters. */
+    const int gridResolution = 128;
     float physicalSize = 1.0f;
-
-    /** Wave speed in meters per second. */
     float c = 100.0f;
-
-    /** Spacial step size in meters, computed as physicalSize / gridResolution */
     float dx = 0.0f;
-
-    /** Time step size in seconds, computed as dx / (c * sqrt(2)) */
     float dt = 0.0f;
+    float damping = 0.996f;
 
-    /** Contiguous memory for the previous frame simulation. */
-    std::vector<float> previous;
+    float targetC = 100.0f;
+    float targetDx = 0.0f;
 
-    /** Contiguous memory for the current frame simulation. */
-    std::vector<float> current;
-
-    /** Contiguous memory for the next frame simulation. */
-    std::vector<float> next;
-
-    /** Precomputed mask for "inside circle" cells. */
+    std::vector<float> bufferA, bufferB, bufferC;
     std::vector<bool> isInside;
 
-    /** Reference to the AudioProcessorValueTreeState for parameter management. */
-    juce::AudioProcessorValueTreeState &state;
+    float* current = nullptr;
+    float* previous = nullptr;
+    float* next = nullptr;
+
+    juce::AudioProcessorValueTreeState& state;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VibratingMembraneModel)
 };
 
-#endif //VIBRATING_MEMBRANE_MODEL_H
+#endif // VIBRATING_MEMBRANE_MODEL_H
