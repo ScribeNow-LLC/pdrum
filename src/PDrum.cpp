@@ -15,7 +15,8 @@ PDrum::PDrum() : AudioProcessor(BusesProperties().withOutput(
                                 std::make_unique<juce::AudioParameterFloat>(
                                     "membraneSize", "Size",
                                     1.0f, 50.0f, 1.0f),
-                            }) {
+                            }),
+                 membraneModel(parameters) {
 }
 
 /**
@@ -47,17 +48,16 @@ bool PDrum::isBusesLayoutSupported(const BusesLayout &layouts) const {
  */
 void PDrum::processBlock(juce::AudioBuffer<float> &buffer,
                          juce::MidiBuffer &midiMessages) {
-    juce::ScopedNoDenormals noDenormals;
-    const auto totalNumInputChannels = getTotalNumInputChannels();
-    const auto totalNumOutputChannels = getTotalNumOutputChannels();
+    auto numSamples = buffer.getNumSamples();
+    auto numChannels = buffer.getNumChannels();
 
-    midiMessageCollector.removeNextBlockOfMessages(midiMessages,
-                                                   buffer.getNumSamples());
+    for (int sample = 0; sample < numSamples; ++sample) {
+        float membraneSample = membraneModel.processSample();
 
-    for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear(i, 0, buffer.getNumSamples());
-
-    /// DO PROCESSING HERE
+        for (int channel = 0; channel < numChannels; ++channel) {
+            buffer.setSample(channel, sample, membraneSample);
+        }
+    }
 }
 
 /**

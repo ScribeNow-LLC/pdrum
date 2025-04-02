@@ -2,9 +2,10 @@
 #define P_DRUM_H
 
 #include <Components/Knob/KnobComponent.h>
+#include <Components/Membrane/VibratingMembrane.h>
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_processors/juce_audio_processors.h>
-
+#include <Components/Membrane/VibratingMembraneModel.h>
 /**
  * @brief Audio processor for the PDrum plugin.
  */
@@ -137,12 +138,16 @@ public:
      */
     juce::AudioProcessorValueTreeState &getParameters() { return parameters; }
 
+    VibratingMembraneModel &getModel() noexcept { return membraneModel; }
+
 private:
     /** MIDI message collector to handle incoming MIDI messages. */
     juce::MidiMessageCollector midiMessageCollector{};
 
     /** Audio processor value tree state for managing parameters. */
     juce::AudioProcessorValueTreeState parameters;
+
+    VibratingMembraneModel membraneModel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PDrum)
 };

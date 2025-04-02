@@ -6,7 +6,7 @@
  * is associated with.
  */
 PDrumEditor::PDrumEditor(PDrum &p) : AudioProcessorEditor(p), processor(p),
-                                     membrane(p.getParameters()),
+                                     membrane(p.getModel()),
                                      membraneSizeKnob(
                                          p.getParameters(), "membraneSize",
                                          "Size"),
