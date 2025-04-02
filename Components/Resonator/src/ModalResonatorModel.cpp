@@ -1,11 +1,11 @@
-#include "ModalResonator.h"
+#include "ModalResonatorModel.h"
 
 /**
  * @brief Constructor for ModalResonator.
  * @param state The AudioProcessorValueTreeState to use for parameter
  */
-ModalResonator::ModalResonator(juce::AudioProcessorValueTreeState &state) :
-    state(state) {
+ModalResonatorModel::ModalResonatorModel(
+        juce::AudioProcessorValueTreeState &state) : state(state) {
     state.addParameterListener("membraneSize", this);
     state.addParameterListener("depth", this);
 }
@@ -16,9 +16,9 @@ ModalResonator::ModalResonator(juce::AudioProcessorValueTreeState &state) :
  * @param depthMeters The depth of the resonator in meters.
  * @param sampleRate The sample rate of the audio processor.
  */
-void ModalResonator::setParameters(const float radiusMeters,
-                                   const float depthMeters,
-                                   const float sampleRate) {
+void ModalResonatorModel::setParameters(const float radiusMeters,
+                                        const float depthMeters,
+                                        const float sampleRate) {
     modes.clear();
     m_sampleRate = sampleRate;
     for (const std::vector<float> besselZeros = {2.405f, 3.832f, 5.520f, 7.016f,
@@ -45,7 +45,7 @@ void ModalResonator::setParameters(const float radiusMeters,
  * @param input The input signal to process.
  * @return The processed output signal.
  */
-float ModalResonator::process(const float input) {
+float ModalResonatorModel::process(const float input) {
     float output = 0.0f;
     for (auto &mode: modes)
         output += mode.process(input);
@@ -57,8 +57,8 @@ float ModalResonator::process(const float input) {
  * @param parameterID The ID of the parameter that changed.
  * @param newValue The new value of the parameter.
  */
-void ModalResonator::parameterChanged(const juce::String &parameterID,
-                                      const float newValue) {
+void ModalResonatorModel::parameterChanged(const juce::String &parameterID,
+                                           const float newValue) {
     if (parameterID == "membraneSize") {
         const float depth = state.getRawParameterValue("depth")->load();
         setParameters(newValue, depth, m_sampleRate);
@@ -74,8 +74,8 @@ void ModalResonator::parameterChanged(const juce::String &parameterID,
  * @param q The Q factor of the mode.
  * @param sampleRate
  */
-ModalResonator::BiquadMode::BiquadMode(const float freq, const float q,
-                                       const float sampleRate) {
+ModalResonatorModel::BiquadMode::BiquadMode(const float freq, const float q,
+                                            const float sampleRate) {
     setCoefficients(freq, q, sampleRate);
 }
 
@@ -85,9 +85,9 @@ ModalResonator::BiquadMode::BiquadMode(const float freq, const float q,
  * @param q The Q factor of the mode.
  * @param sampleRate The sample rate of the audio processor.
  */
-void ModalResonator::BiquadMode::setCoefficients(const float freq,
-                                                 const float q,
-                                                 const float sampleRate) {
+void ModalResonatorModel::BiquadMode::setCoefficients(const float freq,
+                                                      const float q,
+                                                      const float sampleRate) {
     const float omega =
             2.0f * juce::MathConstants<float>::pi * freq / sampleRate;
     const float alpha = std::sin(omega) / (2.0f * q);
@@ -113,7 +113,7 @@ void ModalResonator::BiquadMode::setCoefficients(const float freq,
  * @param input The input signal to process.
  * @return The processed output signal.
  */
-float ModalResonator::BiquadMode::process(const float input) {
+float ModalResonatorModel::BiquadMode::process(const float input) {
     const float output = b0 * input + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
     x2 = x1;
     x1 = input;

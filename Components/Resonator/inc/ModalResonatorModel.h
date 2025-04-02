@@ -1,5 +1,5 @@
-#ifndef MODAL_RESONATOR_H
-#define MODAL_RESONATOR_H
+#ifndef MODAL_RESONATOR_MODEL_H
+#define MODAL_RESONATOR_MODEL_H
 
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_utils/juce_audio_utils.h>
@@ -7,14 +7,14 @@
 /**
  * @brief Modal resonator class.
  */
-class ModalResonator final
+class ModalResonatorModel final
     : public juce::AudioProcessorValueTreeState::Listener {
 public:
     /**
-     * @brief Constructor for ModalResonator.
+     * @brief Constructor for ModalResonatorModel.
      * @param state The AudioProcessorValueTreeState to use for parameter
      */
-    explicit ModalResonator(juce::AudioProcessorValueTreeState &state);
+    explicit ModalResonatorModel(juce::AudioProcessorValueTreeState &state);
 
     /**
      * @brief Set the physical parameters of the resonator.
@@ -83,7 +83,7 @@ private:
     /** Sample rate of the audio processor */
     float m_sampleRate = 44100.0f;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ModalResonator)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ModalResonatorModel)
 };
 
-#endif // MODAL_RESONATOR_H
+#endif // MODAL_RESONATOR_MODEL_H

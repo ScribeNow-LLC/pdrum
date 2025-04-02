@@ -3,7 +3,7 @@
 
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_processors/juce_audio_processors.h>
-#include "ModalResonator.h"
+#include "ModalResonatorModel.h"
 #include "VibratingMembrane.h"
 #include "VibratingMembraneModel.h"
 
@@ -151,7 +151,7 @@ private:
     VibratingMembraneModel membraneModel;
 
     /** Modal resonator for simulating the drum body. */
-    ModalResonator resonator;
+    ModalResonatorModel resonatorModel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PDrum)
 };

@@ -37,7 +37,7 @@ target_sources(PDrum PRIVATE
         Components/Knob/src/KnobComponent.cpp
         Components/Membrane/src/VibratingMembraneModel.cpp
         Components/Membrane/src/VibratingMembrane.cpp
-        Components/Resonator/src/ModalResonator.cpp
+        Components/Resonator/src/ModalResonatorModel.cpp
         PDrum/src/PDrum.cpp
         PDrum/src/PDrumEditor.cpp
 )

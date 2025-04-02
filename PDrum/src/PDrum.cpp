@@ -18,7 +18,7 @@ PDrum::PDrum() :
                        std::make_unique<juce::AudioParameterFloat>(
                                "randomness", "Randomness", 0.0f, 50.0f, 5.0f),
                }),
-    membraneModel(parameters), resonator(parameters) {}
+    membraneModel(parameters), resonatorModel(parameters) {}
 
 /**
  * @brief Prepare the processor for playback.
@@ -27,7 +27,7 @@ PDrum::PDrum() :
  */
 void PDrum::prepareToPlay(const double sampleRate, int samplesPerBlock) {
     midiMessageCollector.reset(sampleRate);
-    resonator.setParameters(1.0f, 1.0f, static_cast<float>(sampleRate));
+    resonatorModel.setParameters(1.0f, 1.0f, static_cast<float>(sampleRate));
 }
 
 /**
@@ -67,7 +67,7 @@ void PDrum::processBlock(juce::AudioBuffer<float> &buffer,
     for (int sample = 0; sample < numSamples; ++sample) {
         membraneSample = membraneModel.processSample(
                 1.0f / static_cast<float>(getSampleRate()));
-        resonatorSample = resonator.process(membraneSample);
+        resonatorSample = resonatorModel.process(membraneSample);
         for (int channel = 0; channel < numChannels; ++channel) {
             buffer.setSample(channel, sample, resonatorSample);
         }
