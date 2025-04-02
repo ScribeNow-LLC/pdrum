@@ -7,6 +7,9 @@
 #include <cmath>
 #include <algorithm>
 #include <cassert>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 class VibratingMembraneModel final : public juce::AudioProcessorValueTreeState::Listener {
 public:
@@ -26,10 +29,9 @@ public:
 
         const int center = gridResolution / 2;
         const int radius = center - 1;
-        for (int y = 0; y < gridResolution; ++y) {
-            const int rowStart = y * gridResolution;
-            for (int x = 0; x < gridResolution; ++x) {
-                const int index = rowStart + x;
+        for (int y = 1; y < gridResolution - 1; ++y) {
+            for (int x = 1; x < gridResolution - 1; ++x) {
+                const int index = y * gridResolution + x;
                 const int dx = x - center;
                 const int dy = y - center;
                 if (dx * dx + dy * dy <= radius * radius) {
@@ -87,14 +89,9 @@ public:
         const float newC2 = c * dt / dx;
         const float clampedC2 = std::min(newC2 * newC2, 0.49f);
 
-        for (int index : activeIndices) {
-            const int y = index / gridResolution;
-            const int x = index % gridResolution;
-
-            if (x <= 0 || x >= gridResolution - 1 || y <= 0 || y >= gridResolution - 1) {
-                next[index] = 0.0f;
-                continue;
-            }
+        #pragma omp parallel for schedule(static)
+        for (int i = 0; i < static_cast<int>(activeIndices.size()); ++i) {
+            const int index = activeIndices[i];
 
             const float laplacian = current[index - gridResolution] + current[index + gridResolution] +
                                     current[index - 1] + current[index + 1] - 4.0f * current[index];
