@@ -7,12 +7,14 @@
  */
 PDrumEditor::PDrumEditor(PDrum &p) :
     AudioProcessorEditor(p), processor(p), membrane(p.getModel()),
+    resonator(p.getParameters()),
     membraneSizeKnob(p.getParameters(), "membraneSize", "Size"),
     membraneTensionKnob(p.getParameters(), "membraneTension", "Tension"),
     depthKnob(p.getParameters(), "depth", "Depth"),
     randomnessKnob(p.getParameters(), "randomness", "Randomness") {
     addAndMakeVisible(midiKeyboardComponent);
     addAndMakeVisible(membrane);
+    addAndMakeVisible(resonator);
     addAndMakeVisible(membraneSizeKnob);
     addAndMakeVisible(membraneTensionKnob);
     addAndMakeVisible(depthKnob);
@@ -43,9 +45,10 @@ void PDrumEditor::resized() {
     const auto keyboardArea = area.removeFromBottom(80).reduced(8);
     midiKeyboardComponent.setBounds(keyboardArea);
 
-    auto drumArea =
-            area.removeFromTop(area.getHeight() * 3 / 5).reduced(8);
-    membrane.setBounds(drumArea.removeFromLeft(drumArea.getWidth() / 2).reduced(8));
+    auto drumArea = area.removeFromTop(area.getHeight() * 3 / 5).reduced(8);
+    membrane.setBounds(
+            drumArea.removeFromLeft(drumArea.getWidth() / 2).reduced(8));
+    resonator.setBounds(drumArea.reduced(8));
 
     auto knobArea = area.reduced(8);
     const auto sizeKnobArea = knobArea.removeFromLeft(knobArea.getWidth() / 4);

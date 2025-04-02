@@ -5,6 +5,7 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "KnobComponent.h"
 #include "VibratingMembrane.h"
+#include "ModalResonator.h"
 
 #include "PDrum.h"
 
@@ -41,6 +42,9 @@ private:
 
     /** 2D vibrating membrane simulation to represent the drum head */
     VibratingMembrane membrane;
+
+    /** 3D modal resonator simulation to represent the drum body */
+    ModalResonator resonator;
 
     /** Knob to adjust the size of the membrane */
     KnobComponent membraneSizeKnob;

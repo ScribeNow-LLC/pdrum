@@ -56,4 +56,5 @@ target_link_libraries(PDrum PRIVATE
         juce::juce_audio_processors
         juce::juce_audio_utils
         juce::juce_gui_basics
+        juce::juce_opengl
 )
