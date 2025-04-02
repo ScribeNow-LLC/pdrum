@@ -12,17 +12,16 @@
  * @brief Class representing a vibrating membrane simulation with physical dimensions,
  *        optimized for performance by using contiguous memory.
  */
-class VibratingMembrane final : public juce::Component, juce::Timer {
+class VibratingMembrane final : public juce::Component, juce::Timer,
+                                public
+                                juce::AudioProcessorValueTreeState::Listener {
 public:
     /**
      * @brief Constructor for the VibratingMembrane class.
      */
-    VibratingMembrane() {
-        /// CFL condition: c*dt/dx = 1/sqrt(2)
-        dx = physicalSize / static_cast<float>(gridResolution);
-        dt = dx / (c * std::sqrt(2.0f));
-        constexpr float frameTime = 1.0f / 60.0f;
-        timeStepsPerFrame = static_cast<int>(std::ceil(frameTime / dt));
+    explicit VibratingMembrane(
+        juce::AudioProcessorValueTreeState &state) : state(state) {
+        initialize();
         /// Allocate contiguous arrays.
         const int totalCells = gridResolution * gridResolution;
         previous.resize(totalCells, 0.0f);
@@ -43,6 +42,16 @@ public:
             }
         }
         startTimerHz(60);
+        state.addParameterListener("membraneSize", this);
+        state.addParameterListener("membraneTension", this);
+    }
+
+    void initialize() {
+        /// CFL condition: c*dt/dx = 1/sqrt(2)
+        dx = physicalSize / static_cast<float>(gridResolution);
+        dt = dx / (c * std::sqrt(2.0f));
+        constexpr float frameTime = 1.0f / 60.0f;
+        timeStepsPerFrame = static_cast<int>(std::ceil(frameTime / dt));
     }
 
     /**
@@ -78,12 +87,18 @@ public:
                                                         scaled, 0.0f, 0.0f,
                                                         1.0f);
                 g.setColour(cellColour);
-                g.fillRect(static_cast<float>(x) * cellWidth - 1,
-                           static_cast<float>(y) * cellHeight - 1,
-                           cellWidth + 1,
-                           cellHeight + 1);
+                const float cellX =
+                        squareBounds.getX() + static_cast<float>(x) * cellWidth
+                        - cellWidth / 2.0f;
+                const float cellY =
+                        squareBounds.getY() + static_cast<float>(y) * cellHeight
+                        - cellWidth / 2.0f;
+                g.fillRect(cellX, cellY, cellWidth, cellHeight);
             }
         }
+        g.setColour(juce::Colours::white);
+        g.drawRect(getLocalBounds().toFloat(), 2.0f);
+        g.drawEllipse(squareBounds.toFloat().reduced(8), 10.0f);
     }
 
     /**
@@ -97,17 +112,18 @@ public:
         const float offsetY = (bounds.getHeight() - side) * 0.5f;
         const juce::Rectangle squareBounds(offsetX, offsetY, side, side);
 
+        const float relativeX = static_cast<float>(e.x) - squareBounds.getX();
+        const float relativeY = static_cast<float>(e.y) - squareBounds.getY();
         const int x = static_cast<int>(
-            (static_cast<float>(e.x) / squareBounds.getWidth()) * static_cast<
-                float>(gridResolution));
+            (relativeX / squareBounds.getWidth()) * static_cast<float>(
+                gridResolution));
         const int y = static_cast<int>(
-            (static_cast<float>(e.y) / squareBounds.getHeight()) * static_cast<
-                float>(gridResolution));
+            (relativeY / squareBounds.getHeight()) * static_cast<float>(
+                gridResolution));
 
-        const int index = y * gridResolution + x;
         // Only add impulse if within valid region and inside circle.
-        const int center = gridResolution / 2;
-        if (x > 1 && x < gridResolution - 1 && y > 1 && y < gridResolution - 1
+        if (const int index = y * gridResolution + x;
+            x > 1 && x < gridResolution - 1 && y > 1 && y < gridResolution - 1
             && isInside[index]) {
             current[index] = 1.0f;
             previous[index] = 0.5f;
@@ -156,6 +172,23 @@ private:
         repaint();
     }
 
+    /**
+     * @brief Handle parameter changes.
+     * @param parameterID The ID of the parameter that changed.
+     * @param newValue The new value of the parameter.
+     */
+    void parameterChanged(const juce::String &parameterID,
+                          const float newValue) override {
+        if (parameterID == "membraneSize") {
+            physicalSize = newValue;
+            initialize();
+        }
+        if (parameterID == "membraneTension") {
+            c = newValue;
+            initialize();
+        }
+    }
+
     /** Grid resolution (number of cells along one side). */
     const int gridResolution = 50;
 
@@ -185,6 +218,9 @@ private:
 
     /** Precomputed mask for "inside circle" cells. */
     std::vector<bool> isInside;
+
+    /** Reference to the AudioProcessorValueTreeState for parameter management. */
+    juce::AudioProcessorValueTreeState &state;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VibratingMembrane)
 };

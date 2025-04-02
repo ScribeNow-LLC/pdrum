@@ -1,6 +1,7 @@
 #ifndef P_DRUM_H
 #define P_DRUM_H
 
+#include <Components/Knob/KnobComponent.h>
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -29,7 +30,8 @@ public:
     /**
      * @brief Release any resources used by the processor.
      */
-    void releaseResources() override {}
+    void releaseResources() override {
+    }
 
     /**
      * @brief Check if the processor supports the given bus layout.
@@ -94,7 +96,8 @@ public:
     /**
      * @brief Set the current program index.
      */
-    void setCurrentProgram(int) override {}
+    void setCurrentProgram(int) override {
+    }
 
     /**
      * @brief Get the name of a specific program.
@@ -105,17 +108,20 @@ public:
     /**
      * @brief Change the name of a specific program.
      */
-    void changeProgramName(int, const juce::String &) override {}
+    void changeProgramName(int, const juce::String &) override {
+    }
 
     /**
      * @brief Get the state information of the processor.
      */
-    void getStateInformation(juce::MemoryBlock &) override {}
+    void getStateInformation(juce::MemoryBlock &) override {
+    }
 
     /**
      * @brief Set the state information of the processor.
      */
-    void setStateInformation(const void *, int) override {}
+    void setStateInformation(const void *, int) override {
+    }
 
     /**
      * @brief Get the MIDI message collector.
@@ -125,9 +131,18 @@ public:
         return midiMessageCollector;
     }
 
+    /**
+     * @brief Gets the value tree state for the parameters.
+     * @return A reference to the AudioProcessorValueTreeState object.
+     */
+    juce::AudioProcessorValueTreeState &getParameters() { return parameters; }
+
 private:
     /** MIDI message collector to handle incoming MIDI messages. */
     juce::MidiMessageCollector midiMessageCollector{};
+
+    /** Audio processor value tree state for managing parameters. */
+    juce::AudioProcessorValueTreeState parameters;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PDrum)
 };

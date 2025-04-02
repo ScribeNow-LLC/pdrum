@@ -4,9 +4,19 @@
 /**
  * @brief Constructor for the PDrum processor.
  */
-PDrum::PDrum() :
-    AudioProcessor(BusesProperties().withOutput(
-            "Output", juce::AudioChannelSet::stereo(), true)) {}
+PDrum::PDrum() : AudioProcessor(BusesProperties().withOutput(
+                     "Output", juce::AudioChannelSet::stereo(), true)),
+                 parameters(*this, nullptr, "PARAMETERS",
+                            {
+                                std::make_unique<juce::AudioParameterFloat>(
+                                    "membraneTension", "Tension", 100.0f,
+                                    300.0f,
+                                    100.0f),
+                                std::make_unique<juce::AudioParameterFloat>(
+                                    "membraneSize", "Size",
+                                    1.0f, 50.0f, 1.0f),
+                            }) {
+}
 
 /**
  * @brief Prepare the processor for playback.

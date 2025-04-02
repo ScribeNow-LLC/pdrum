@@ -38,14 +38,22 @@ private:
     /** Reference to the PDrum processor */
     PDrum &processor;
 
+    /** 2D vibrating membrane simulation to represent the drum head */
     VibratingMembrane membrane;
+
+    /** Knob to adjust the size of the membrane */
+    KnobComponent membraneSizeKnob;
+
+    /** Knob to adjust the tension of the membrane */
+    KnobComponent membraneTensionKnob;
 
     /** MIDI keyboard state */
     juce::MidiKeyboardState midiKeyboardState;
 
     /** MIDI keyboard component for user interaction */
     juce::MidiKeyboardComponent midiKeyboardComponent{
-            midiKeyboardState, juce::MidiKeyboardComponent::horizontalKeyboard};
+        midiKeyboardState, juce::MidiKeyboardComponent::horizontalKeyboard
+    };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PDrumEditor)
 

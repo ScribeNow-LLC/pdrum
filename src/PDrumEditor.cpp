@@ -5,9 +5,18 @@
  * @param p A reference to the NBandParametricEQ processor that this editor
  * is associated with.
  */
-PDrumEditor::PDrumEditor(PDrum &p) : AudioProcessorEditor(p), processor(p) {
+PDrumEditor::PDrumEditor(PDrum &p) : AudioProcessorEditor(p), processor(p),
+                                     membrane(p.getParameters()),
+                                     membraneSizeKnob(
+                                         p.getParameters(), "membraneSize",
+                                         "Size"),
+                                     membraneTensionKnob(
+                                         p.getParameters(), "membraneTension",
+                                         "Tension") {
     addAndMakeVisible(midiKeyboardComponent);
     addAndMakeVisible(membrane);
+    addAndMakeVisible(membraneSizeKnob);
+    addAndMakeVisible(membraneTensionKnob);
     midiKeyboardComponent.setMidiChannel(2);
     midiKeyboardState.addListener(&processor.getMidiMessageCollector());
     setSize(500, 400);
@@ -22,7 +31,7 @@ PDrumEditor::PDrumEditor(PDrum &p) : AudioProcessorEditor(p), processor(p) {
  */
 void PDrumEditor::paint(juce::Graphics &g) {
     g.fillAll(getLookAndFeel().findColour(
-            juce::ResizableWindow::backgroundColourId));
+        juce::ResizableWindow::backgroundColourId));
 }
 
 /**
@@ -34,7 +43,16 @@ void PDrumEditor::resized() {
     const auto keyboardArea = area.removeFromBottom(80).reduced(8);
     midiKeyboardComponent.setBounds(keyboardArea);
 
-    membrane.setBounds(area.reduced(8));
+    auto drumArea = area.removeFromLeft(area.getWidth() * 4 / 5).reduced(8);
+
+    const auto membraneArea = drumArea.removeFromTop(drumArea.getHeight() / 2);
+    membrane.setBounds(membraneArea.reduced(8));
+
+    auto knobArea = area.reduced(8);
+    const auto sizeKnobArea = knobArea.removeFromTop(knobArea.getHeight() / 2);
+    membraneSizeKnob.setBounds(sizeKnobArea);
+
+    membraneTensionKnob.setBounds(knobArea);
 }
 
 /**
