@@ -72,6 +72,7 @@ public:
         }
     }
 
+    /// TODO - track the position of the mouse used to excite the membrane and measure from there
     float processSample(const float timeStep) {
         static constexpr int updateInterval = 10;
         static int counter = 0;

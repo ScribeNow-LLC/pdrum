@@ -3,47 +3,76 @@
 
 #include <juce_audio_basics/juce_audio_basics.h>
 
-class ModalResonator {
+class ModalResonator final : public juce::AudioProcessorValueTreeState::Listener
+{
 public:
-    void setParameters(const float radiusMeters, const float depthMeters,
-                       const float sampleRate) {
-        modes.clear();
+    explicit ModalResonator(juce::AudioProcessorValueTreeState& state)
+        : state(state)
+    {
+        state.addParameterListener("membraneSize", this);
+        state.addParameterListener("depth", this);
+    }
 
+    void setParameters(const float radiusMeters, const float depthMeters,
+                       const float sampleRate)
+    {
+        modes.clear();
+        m_sampleRate = sampleRate;
         for (const std::vector<float> besselZeros = {
                  2.405f, 3.832f, 5.520f, 7.016f, 8.417f
-             }; const float alpha: besselZeros) {
+             }; const float alpha : besselZeros)
+        {
             constexpr int numAxialModes = 3;
-            for (int n = 0; n < numAxialModes; ++n) {
+            for (int n = 0; n < numAxialModes; ++n)
+            {
                 constexpr float c = 343.0f;
                 float freq = (c / (2.0f * juce::MathConstants<float>::pi)) *
-                             std::sqrt(
-                                 std::pow(alpha / radiusMeters, 2.0f) +
-                                 std::pow(
-                                     static_cast<float>(n) * juce::MathConstants
-                                     <float>::pi / depthMeters, 2.0f));
+                    std::sqrt(
+                        std::pow(alpha / radiusMeters, 2.0f) +
+                        std::pow(
+                            static_cast<float>(n) * juce::MathConstants
+                            <float>::pi / depthMeters, 2.0f));
                 float q = 10.0f;
                 modes.emplace_back(freq, q, sampleRate);
             }
         }
     }
 
-    float process(const float input) {
+    float process(const float input)
+    {
         float output = 0.0f;
-        for (auto &mode: modes)
+        for (auto& mode : modes)
             output += mode.process(input);
         return output;
     }
 
 private:
-    struct BiquadMode {
-        BiquadMode(const float freq, const float q, const float sampleRate) {
+    void parameterChanged(const juce::String& parameterID, const float newValue) override
+    {
+        if (parameterID == "membraneSize")
+        {
+            const float depth = state.getRawParameterValue("depth")->load();
+            setParameters(newValue, depth, m_sampleRate);
+        }
+        else if (parameterID == "depth")
+        {
+            const float size = state.getRawParameterValue("membraneSize")->load();
+            setParameters(size, newValue, m_sampleRate);
+        }
+    }
+
+    struct BiquadMode
+    {
+        BiquadMode(const float freq, const float q, const float sampleRate)
+        {
             setCoefficients(freq, q, sampleRate);
         }
 
         void setCoefficients(const float freq, const float q,
-                             const float sampleRate) {
+                             const float sampleRate)
+        {
             const float omega = 2.0f * juce::MathConstants<float>::pi * freq /
-                                sampleRate;
+                sampleRate;
             const float alpha = std::sin(omega) / (2.0f * q);
             const float cos_omega = std::cos(omega);
 
@@ -62,9 +91,10 @@ private:
             a2 /= a0;
         }
 
-        float process(const float input) {
+        float process(const float input)
+        {
             const float output = b0 * input + b1 * x1 + b2 * x2
-                                 - a1 * y1 - a2 * y2;
+                - a1 * y1 - a2 * y2;
             x2 = x1;
             x1 = input;
             y2 = y1;
@@ -79,6 +109,11 @@ private:
     };
 
     std::vector<BiquadMode> modes;
+    juce::AudioProcessorValueTreeState& state;
+
+    float m_sampleRate = 44100.0f;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ModalResonator)
 };
 
 #endif //MODAL_RESONATOR_H

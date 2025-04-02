@@ -12,11 +12,14 @@ PDrumEditor::PDrumEditor(PDrum &p) : AudioProcessorEditor(p), processor(p),
                                          "Size"),
                                      membraneTensionKnob(
                                          p.getParameters(), "membraneTension",
-                                         "Tension") {
+                                         "Tension"),
+                                    depthKnob(
+                                        p.getParameters(), "depth", "Depth") {
     addAndMakeVisible(midiKeyboardComponent);
     addAndMakeVisible(membrane);
     addAndMakeVisible(membraneSizeKnob);
     addAndMakeVisible(membraneTensionKnob);
+    addAndMakeVisible(depthKnob);
     midiKeyboardComponent.setMidiChannel(2);
     midiKeyboardState.addListener(&processor.getMidiMessageCollector());
     setSize(500, 400);
@@ -49,10 +52,14 @@ void PDrumEditor::resized() {
     membrane.setBounds(membraneArea.reduced(8));
 
     auto knobArea = area.reduced(8);
-    const auto sizeKnobArea = knobArea.removeFromTop(knobArea.getHeight() / 2);
+    const auto sizeKnobArea = knobArea.removeFromTop(knobArea.getHeight() / 3);
     membraneSizeKnob.setBounds(sizeKnobArea);
 
-    membraneTensionKnob.setBounds(knobArea);
+    const auto tensionArea = knobArea.removeFromTop(knobArea.getHeight() / 2);
+    membraneTensionKnob.setBounds(tensionArea);
+
+    const auto depthArea = knobArea;
+    depthKnob.setBounds(depthArea);
 }
 
 /**

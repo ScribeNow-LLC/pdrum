@@ -47,6 +47,9 @@ private:
     /** Knob to adjust the tension of the membrane */
     KnobComponent membraneTensionKnob;
 
+    /** Depth of the drum */
+    KnobComponent depthKnob;
+
     /** MIDI keyboard state */
     juce::MidiKeyboardState midiKeyboardState;
 

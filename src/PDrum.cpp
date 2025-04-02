@@ -15,8 +15,11 @@ PDrum::PDrum() : AudioProcessor(BusesProperties().withOutput(
                                 std::make_unique<juce::AudioParameterFloat>(
                                     "membraneSize", "Size",
                                     0.2f, 10.0f, 1.0f),
+                                std::make_unique<juce::AudioParameterFloat>(
+                                    "depth", "Depth",
+                                    0.2f, 10.0f, 1.0f),
                             }),
-                 membraneModel(parameters) {
+                 membraneModel(parameters), resonator(parameters) {
 }
 
 /**
