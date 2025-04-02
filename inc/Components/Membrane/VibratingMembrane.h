@@ -31,7 +31,7 @@ public:
      */
     void paint(juce::Graphics &g) override {
         const auto gridResolution = membraneModel.getGridResolution();
-        const std::vector<bool> isInside = membraneModel.getIsInsideMask();
+        const auto isInside = membraneModel.getIsInsideMask();
         const std::vector<float> current = membraneModel.getCurrentBuffer();
 
         const auto bounds = getLocalBounds().toFloat();

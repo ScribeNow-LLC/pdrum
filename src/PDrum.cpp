@@ -65,7 +65,7 @@ void PDrum::processBlock(juce::AudioBuffer<float> &buffer,
     float resonatorSample = 0.0f;
     for (int sample = 0; sample < numSamples; ++sample) {
         // Update only if the model says to (e.g., every 10 samples internally)
-        membraneSample = membraneModel.processSample();
+        membraneSample = membraneModel.processSample(1.0f / static_cast<float>(getSampleRate()));
         resonatorSample = resonator.process(membraneSample);
         for (int channel = 0; channel < numChannels; ++channel) {
             buffer.setSample(channel, sample, resonatorSample);

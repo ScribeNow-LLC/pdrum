@@ -18,7 +18,7 @@ public:
         bufferA.resize(totalCells, 0.0f);
         bufferB.resize(totalCells, 0.0f);
         bufferC.resize(totalCells, 0.0f);
-        isInside.resize(totalCells, false);
+        isInside.resize(totalCells, 0);
 
         current = bufferA.data();
         previous = bufferB.data();
@@ -27,11 +27,15 @@ public:
         const int center = gridResolution / 2;
         const int radius = center - 1;
         for (int y = 0; y < gridResolution; ++y) {
+            const int rowStart = y * gridResolution;
             for (int x = 0; x < gridResolution; ++x) {
-                const int index = y * gridResolution + x;
+                const int index = rowStart + x;
                 const int dx = x - center;
                 const int dy = y - center;
-                isInside[index] = (dx * dx + dy * dy <= radius * radius);
+                if (dx * dx + dy * dy <= radius * radius) {
+                    isInside[index] = 1;
+                    activeIndices.push_back(index);
+                }
             }
         }
 
@@ -56,46 +60,46 @@ public:
         }
     }
 
-    /// TODO - add a midi key to slightly change the size
     void exciteCenter(const float amplitude) {
         const int centerX = gridResolution / 2;
         const int centerY = gridResolution / 2;
-        if (const int index = centerY * gridResolution + centerX; isInside[index]) {
-            current[index + 1] = amplitude;
-            previous[index + 1] = amplitude * 0.5f;
+        const int index = centerY * gridResolution + centerX + 1;
+        if (isInside[index]) {
+            current[index] = amplitude;
+            previous[index] = amplitude * 0.5f;
         }
     }
 
-    float processSample() {
+    float processSample(const float timeStep) {
         static constexpr int updateInterval = 10;
         static int counter = 0;
         if (++counter < updateInterval)
             return current[(gridResolution / 2) * gridResolution + (gridResolution / 2)];
         counter = 0;
 
-        constexpr float smoothingFactor = 0.005f; // slower smoothing for stability
+        constexpr float smoothingFactor = 0.005f;
 
-        dx = dx + (targetDx - dx) * smoothingFactor;
-        c = c + (targetC - c) * smoothingFactor;
+        dx += (targetDx - dx) * smoothingFactor;
+        c += (targetC - c) * smoothingFactor;
 
-        dt = 1.0f / 44100.0f;
-        float c2 = std::pow(c * dt / dx, 2.0f);
+        dt = timeStep;
 
-        // Clamp c2 to ensure it remains stable under the CFL condition
-        const float maxC2 = 0.49f; // Just under 0.5 for 2D grid stability
-        c2 = std::min(c2, maxC2);
+        const float newC2 = c * dt / dx;
+        const float clampedC2 = std::min(newC2 * newC2, 0.49f);
 
-        for (int y = 1; y < gridResolution - 1; ++y) {
-            for (int x = 1; x < gridResolution - 1; ++x) {
-                const int index = y * gridResolution + x;
-                if (!isInside[index]) {
-                    next[index] = 0.0f;
-                    continue;
-                }
-                const float laplacian = current[index - gridResolution] + current[index + gridResolution] +
-                                        current[index - 1] + current[index + 1] - 4.0f * current[index];
-                next[index] = damping * (2.0f * current[index] - previous[index] + c2 * laplacian);
+        for (int index : activeIndices) {
+            const int y = index / gridResolution;
+            const int x = index % gridResolution;
+
+            if (x <= 0 || x >= gridResolution - 1 || y <= 0 || y >= gridResolution - 1) {
+                next[index] = 0.0f;
+                continue;
             }
+
+            const float laplacian = current[index - gridResolution] + current[index + gridResolution] +
+                                    current[index - 1] + current[index + 1] - 4.0f * current[index];
+
+            next[index] = damping * (2.0f * current[index] - previous[index] + clampedC2 * laplacian);
         }
 
         std::swap(previous, current);
@@ -106,7 +110,7 @@ public:
     }
 
     std::vector<float>& getCurrentBuffer() { return bufferA; }
-    std::vector<bool>& getIsInsideMask() { return isInside; }
+    std::vector<uint8_t>& getIsInsideMask() { return isInside; }
     int getGridResolution() const { return gridResolution; }
 
 private:
@@ -114,11 +118,11 @@ private:
         if (parameterID == "membraneSize") {
             targetDx = newValue / static_cast<float>(gridResolution);
         } else if (parameterID == "membraneTension") {
-            /// TODO - implement tension?
+            // TODO: implement tension parameter change
         }
     }
 
-    const int gridResolution = 128;
+    const int gridResolution = 150;
     float physicalSize = 1.0f;
     float c = 100.0f;
     float dx = 0.0f;
@@ -129,7 +133,8 @@ private:
     float targetDx = 0.0f;
 
     std::vector<float> bufferA, bufferB, bufferC;
-    std::vector<bool> isInside;
+    std::vector<uint8_t> isInside;
+    std::vector<int> activeIndices;
 
     float* current = nullptr;
     float* previous = nullptr;
