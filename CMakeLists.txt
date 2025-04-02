@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.30)
 
 project(PDrum VERSION 0.1.0)
 
-# Use modern C++
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -14,6 +13,63 @@ FetchContent_Declare(
         GIT_TAG master
 )
 FetchContent_MakeAvailable(juce)
+
+########################################################################################################################
+# Knob Component                                                                                                       #
+# --------------                                                                                                       #
+########################################################################################################################
+
+add_library(KnobComponent STATIC
+        Components/Knob/src/KnobComponent.cpp
+)
+target_include_directories(KnobComponent PUBLIC
+        Components/Knob/inc
+)
+target_link_libraries(KnobComponent PRIVATE
+        juce::juce_audio_processors
+        juce::juce_gui_basics
+)
+target_compile_definitions(KnobComponent PRIVATE JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1)
+
+########################################################################################################################
+# Membrane Component                                                                                                   #
+# ------------------                                                                                                   #
+########################################################################################################################
+
+add_library(MembraneComponent STATIC
+        Components/Membrane/src/VibratingMembraneModel.cpp
+        Components/Membrane/src/VibratingMembrane.cpp
+)
+target_include_directories(MembraneComponent PUBLIC
+        Components/Membrane/inc
+)
+target_link_libraries(MembraneComponent PRIVATE
+        juce::juce_audio_utils
+        juce::juce_audio_basics
+)
+target_compile_definitions(MembraneComponent PRIVATE JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1)
+
+########################################################################################################################
+# Resonator Component                                                                                                  #
+# -------------------                                                                                                  #
+########################################################################################################################
+
+add_library(ResonatorComponent STATIC
+        Components/Resonator/src/ModalResonator.cpp
+)
+target_include_directories(ResonatorComponent PUBLIC
+        Components/Resonator/inc
+)
+target_link_libraries(ResonatorComponent PRIVATE
+        juce::juce_audio_utils
+        juce::juce_audio_basics
+)
+target_compile_definitions(ResonatorComponent PRIVATE JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1)
+
+########################################################################################################################
+# PDrum Plugin                                                                                                         #
+# ------------                                                                                                         #
+########################################################################################################################
 
 juce_add_plugin(PDrum
         COMPANY_NAME "Scribe Now LLC"
@@ -30,27 +86,26 @@ juce_add_plugin(PDrum
 )
 
 target_sources(PDrum PRIVATE
-        src/KnobComponent.cpp
-        src/VibratingMembraneModel.cpp
-        src/VibratingMembrane.cpp
-        src/ModalResonator.cpp
-        src/PDrum.cpp
-        src/PDrumEditor.cpp
+        PDrum/src/PDrum.cpp
+        PDrum/src/PDrumEditor.cpp
 )
 
 target_include_directories(PDrum PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/inc
+        PDrum/inc
+)
+
+add_dependencies(PDrum
+        KnobComponent
+        MembraneComponent
+        ResonatorComponent
 )
 
 target_compile_definitions(PDrum PRIVATE JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1)
 
 target_link_libraries(PDrum PRIVATE
-        juce::juce_audio_processors
         juce::juce_audio_utils
         juce::juce_audio_basics
-        juce::juce_audio_devices
-        juce::juce_core
-        juce::juce_gui_basics
-        juce::juce_gui_extra
-        juce::juce_dsp
+        KnobComponent
+        MembraneComponent
+        ResonatorComponent
 )

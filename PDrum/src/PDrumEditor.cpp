@@ -1,4 +1,4 @@
-#include <PDrum/PDrumEditor.h>
+#include "PDrumEditor.h"
 
 /**
  * @brief Constructor for the NBandParametricEQEditor class.

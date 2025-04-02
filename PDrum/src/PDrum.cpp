@@ -1,5 +1,5 @@
-#include <PDrum/PDrum.h>
-#include <PDrum/PDrumEditor.h>
+#include "PDrum.h"
+#include "PDrumEditor.h"
 
 /**
  * @brief Constructor for the PDrum processor.

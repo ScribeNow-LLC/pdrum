@@ -1,4 +1,4 @@
-#include <Components/Membrane/VibratingMembrane.h>
+#include "VibratingMembrane.h"
 
 #include <cassert>
 #include <cmath>

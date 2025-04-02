@@ -1,9 +1,10 @@
 #ifndef P_DRUM_EDITOR_H
 #define P_DRUM_EDITOR_H
 
-#include <Components/Membrane/VibratingMembrane.h>
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_utils/juce_audio_utils.h>
+#include "KnobComponent.h"
+#include "VibratingMembrane.h"
 
 #include "PDrum.h"
 

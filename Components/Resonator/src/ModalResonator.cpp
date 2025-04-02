@@ -1,4 +1,4 @@
-#include <Components/Resonator/ModalResonator.h>
+#include "ModalResonator.h"
 
 /**
  * @brief Constructor for ModalResonator.

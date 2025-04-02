@@ -1,4 +1,4 @@
-#include <Components/Knob/KnobComponent.h>
+#include "KnobComponent.h"
 
 /**
  * @brief Constructor for the KnobComponent.

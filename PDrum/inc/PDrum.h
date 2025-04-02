@@ -1,12 +1,11 @@
 #ifndef P_DRUM_H
 #define P_DRUM_H
 
-#include <Components/Knob/KnobComponent.h>
-#include <Components/Membrane/VibratingMembrane.h>
-#include <Components/Membrane/VibratingMembraneModel.h>
-#include <Components/Resonator/ModalResonator.h>
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "ModalResonator.h"
+#include "VibratingMembrane.h"
+#include "VibratingMembraneModel.h"
 
 /**
  * @brief Audio processor for the PDrum plugin.
