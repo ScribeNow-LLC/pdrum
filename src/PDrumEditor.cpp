@@ -14,12 +14,15 @@ PDrumEditor::PDrumEditor(PDrum &p) : AudioProcessorEditor(p), processor(p),
                                          p.getParameters(), "membraneTension",
                                          "Tension"),
                                     depthKnob(
-                                        p.getParameters(), "depth", "Depth") {
+                                        p.getParameters(), "depth", "Depth"),
+randomnessKnob(
+                                        p.getParameters(), "randomness", "Randomness"){
     addAndMakeVisible(midiKeyboardComponent);
     addAndMakeVisible(membrane);
     addAndMakeVisible(membraneSizeKnob);
     addAndMakeVisible(membraneTensionKnob);
     addAndMakeVisible(depthKnob);
+    addAndMakeVisible(randomnessKnob);
     midiKeyboardComponent.setMidiChannel(2);
     midiKeyboardState.addListener(&processor.getMidiMessageCollector());
     setSize(500, 400);
@@ -50,14 +53,19 @@ void PDrumEditor::resized() {
     membrane.setBounds(drumArea.reduced(8));
 
     auto knobArea = area.reduced(8);
-    const auto sizeKnobArea = knobArea.removeFromLeft(knobArea.getWidth() / 3);
+    const auto sizeKnobArea = knobArea.removeFromLeft(knobArea.getWidth() / 4);
     membraneSizeKnob.setBounds(sizeKnobArea);
 
-    const auto tensionArea = knobArea.removeFromLeft(knobArea.getWidth() / 2);
+    const auto tensionArea = knobArea.removeFromLeft(knobArea.getWidth() / 3);
     membraneTensionKnob.setBounds(tensionArea);
 
-    const auto depthArea = knobArea;
+    const auto depthArea = knobArea.removeFromLeft(knobArea.getWidth() / 2);
     depthKnob.setBounds(depthArea);
+
+    const auto randomnessArea = knobArea;
+    randomnessKnob.setBounds(randomnessArea);
+
+    /// TODO - create a Component to draw a 3D cylinder to represent the drum
 }
 
 /**

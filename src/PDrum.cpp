@@ -4,22 +4,26 @@
 /**
  * @brief Constructor for the PDrum processor.
  */
-PDrum::PDrum() : AudioProcessor(BusesProperties().withOutput(
-                     "Output", juce::AudioChannelSet::stereo(), true)),
-                 parameters(*this, nullptr, "PARAMETERS",
-                            {
-                                std::make_unique<juce::AudioParameterFloat>(
-                                    "membraneTension", "Tension", 0.01f,
-                                    1.0f,
-                                    0.5f),
-                                std::make_unique<juce::AudioParameterFloat>(
-                                    "membraneSize", "Size",
-                                    0.2f, 10.0f, 1.0f),
-                                std::make_unique<juce::AudioParameterFloat>(
-                                    "depth", "Depth",
-                                    0.2f, 10.0f, 1.0f),
-                            }),
-                 membraneModel(parameters), resonator(parameters) {
+PDrum::PDrum() :
+    AudioProcessor(BusesProperties().withOutput(
+            "Output", juce::AudioChannelSet::stereo(), true)),
+    parameters(*this, nullptr, "PARAMETERS",
+               {
+                       std::make_unique<juce::AudioParameterFloat>(
+                               "membraneTension", "Tension", 0.01f,
+                               1.0f,
+                               0.5f),
+                       std::make_unique<juce::AudioParameterFloat>(
+                               "membraneSize", "Size",
+                               0.2f, 10.0f, 1.0f),
+                       std::make_unique<juce::AudioParameterFloat>(
+                               "depth", "Depth",
+                               0.2f, 10.0f, 1.0f),
+                       std::make_unique<juce::AudioParameterFloat>(
+                               "randomness", "Randomness",
+                               0.0f, 50.0f, 5.0f),
+               }),
+    membraneModel(parameters), resonator(parameters) {
 }
 
 /**
@@ -52,8 +56,8 @@ bool PDrum::isBusesLayoutSupported(const BusesLayout &layouts) const {
  */
 void PDrum::processBlock(juce::AudioBuffer<float> &buffer,
                          juce::MidiBuffer &midiMessages) {
-    auto numSamples = buffer.getNumSamples();
-    auto numChannels = buffer.getNumChannels();
+    const auto numSamples = buffer.getNumSamples();
+    const auto numChannels = buffer.getNumChannels();
 
     midiMessageCollector.removeNextBlockOfMessages(midiMessages,
                                                    buffer.getNumSamples());
@@ -68,7 +72,8 @@ void PDrum::processBlock(juce::AudioBuffer<float> &buffer,
     float resonatorSample = 0.0f;
     for (int sample = 0; sample < numSamples; ++sample) {
         // Update only if the model says to (e.g., every 10 samples internally)
-        membraneSample = membraneModel.processSample(1.0f / static_cast<float>(getSampleRate()));
+        membraneSample = membraneModel.processSample(
+                1.0f / static_cast<float>(getSampleRate()));
         resonatorSample = resonator.process(membraneSample);
         for (int channel = 0; channel < numChannels; ++channel) {
             buffer.setSample(channel, sample, resonatorSample);

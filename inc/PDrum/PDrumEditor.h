@@ -50,6 +50,9 @@ private:
     /** Depth of the drum */
     KnobComponent depthKnob;
 
+    /** Randomness knob */
+    KnobComponent randomnessKnob;
+
     /** MIDI keyboard state */
     juce::MidiKeyboardState midiKeyboardState;
 

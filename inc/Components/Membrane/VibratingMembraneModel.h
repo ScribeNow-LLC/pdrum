@@ -7,14 +7,15 @@
 #include <cmath>
 #include <algorithm>
 #include <cassert>
+#include <random>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 class VibratingMembraneModel final : public juce::AudioProcessorValueTreeState::Listener {
 public:
-    explicit VibratingMembraneModel(juce::AudioProcessorValueTreeState& state)
-        : state(state) {
+    explicit VibratingMembraneModel(juce::AudioProcessorValueTreeState& state, const int gridResolution = 150)
+        : state(state), gridResolution(gridResolution) {
         initialize();
 
         const int totalCells = gridResolution * gridResolution;
@@ -43,6 +44,7 @@ public:
 
         state.addParameterListener("membraneSize", this);
         state.addParameterListener("membraneTension", this);
+        state.addParameterListener("randomness", this);
     }
 
     void initialize() {
@@ -63,8 +65,15 @@ public:
     }
 
     void exciteCenter(const float amplitude) {
-        const int centerX = gridResolution / 2;
-        const int centerY = gridResolution / 2;
+        const float randomness = state.getRawParameterValue("randomness")->load();
+        std::random_device dev;
+        std::mt19937 rng(dev());
+        std::uniform_real_distribution<> dist(-randomness,randomness);
+        const int offsetX = static_cast<int>(dist(rng));
+        const int offsetY = static_cast<int>(dist(rng));
+        const int centerX = gridResolution / 2 + offsetX;
+        const int centerY = gridResolution / 2 + offsetY;
+        DBG(randomness << " " << offsetX << " " << offsetY);
         if (const int index = centerY * gridResolution + centerX + 1; isInside[index]) {
             current[index] = amplitude;
             previous[index] = amplitude * 0.5f;
@@ -72,7 +81,6 @@ public:
         }
     }
 
-    /// TODO - ASDR to prevent pops
     float processSample(const float timeStep) {
         static constexpr int updateInterval = 10;
         static int counter = 0;
@@ -91,9 +99,7 @@ public:
         const float clampedC2 = std::min(newC2 * newC2, 0.49f);
 
         #pragma omp parallel for schedule(static)
-        for (int i = 0; i < static_cast<int>(activeIndices.size()); ++i) {
-            const int index = activeIndices[i];
-
+        for (const int index : activeIndices) {
             const float laplacian = current[index - gridResolution] + current[index + gridResolution] +
                                     current[index - 1] + current[index + 1] - 4.0f * current[index];
 
@@ -108,7 +114,7 @@ public:
 
     std::vector<float>& getCurrentBuffer() { return bufferA; }
     std::vector<uint8_t>& getIsInsideMask() { return isInside; }
-    int getGridResolution() const { return gridResolution; }
+    [[nodiscard]] int getGridResolution() const { return gridResolution; }
 
 private:
     void parameterChanged(const juce::String& parameterID, const float newValue) override {
@@ -121,7 +127,7 @@ private:
         }
     }
 
-    const int gridResolution = 150;
+    const int gridResolution;
     float physicalSize = 1.0f;
     float c = 100.0f;
     float dx = 0.0f;
