@@ -111,11 +111,13 @@ public:
     int getGridResolution() const { return gridResolution; }
 
 private:
-    void parameterChanged(const juce::String& parameterID, float newValue) override {
+    void parameterChanged(const juce::String& parameterID, const float newValue) override {
         if (parameterID == "membraneSize") {
             targetDx = newValue / static_cast<float>(gridResolution);
         } else if (parameterID == "membraneTension") {
-            // TODO: implement tension parameter change
+            // targetC = 100.0f * newValue;
+            /// if newValue is from 0 to 1, add or subtract a very small value from damping:
+            damping = 0.996f + (newValue - 0.5f) * 2.0f * 0.0035f;
         }
     }
 

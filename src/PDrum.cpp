@@ -9,9 +9,9 @@ PDrum::PDrum() : AudioProcessor(BusesProperties().withOutput(
                  parameters(*this, nullptr, "PARAMETERS",
                             {
                                 std::make_unique<juce::AudioParameterFloat>(
-                                    "membraneTension", "Tension", 10.0f,
-                                    300.0f,
-                                    100.0f),
+                                    "membraneTension", "Tension", 0.01f,
+                                    1.0f,
+                                    0.5f),
                                 std::make_unique<juce::AudioParameterFloat>(
                                     "membraneSize", "Size",
                                     0.2f, 10.0f, 1.0f),
