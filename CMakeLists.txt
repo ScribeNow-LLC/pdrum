@@ -15,58 +15,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(juce)
 
 ########################################################################################################################
-# Knob Component                                                                                                       #
-# --------------                                                                                                       #
-########################################################################################################################
-
-add_library(KnobComponent STATIC
-        Components/Knob/src/KnobComponent.cpp
-)
-target_include_directories(KnobComponent PUBLIC
-        Components/Knob/inc
-)
-target_link_libraries(KnobComponent PRIVATE
-        juce::juce_audio_processors
-        juce::juce_gui_basics
-)
-target_compile_definitions(KnobComponent PRIVATE JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1)
-
-########################################################################################################################
-# Membrane Component                                                                                                   #
-# ------------------                                                                                                   #
-########################################################################################################################
-
-add_library(MembraneComponent STATIC
-        Components/Membrane/src/VibratingMembraneModel.cpp
-        Components/Membrane/src/VibratingMembrane.cpp
-)
-target_include_directories(MembraneComponent PUBLIC
-        Components/Membrane/inc
-)
-target_link_libraries(MembraneComponent PRIVATE
-        juce::juce_audio_utils
-        juce::juce_audio_basics
-)
-target_compile_definitions(MembraneComponent PRIVATE JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1)
-
-########################################################################################################################
-# Resonator Component                                                                                                  #
-# -------------------                                                                                                  #
-########################################################################################################################
-
-add_library(ResonatorComponent STATIC
-        Components/Resonator/src/ModalResonator.cpp
-)
-target_include_directories(ResonatorComponent PUBLIC
-        Components/Resonator/inc
-)
-target_link_libraries(ResonatorComponent PRIVATE
-        juce::juce_audio_utils
-        juce::juce_audio_basics
-)
-target_compile_definitions(ResonatorComponent PRIVATE JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1)
-
-########################################################################################################################
 # PDrum Plugin                                                                                                         #
 # ------------                                                                                                         #
 ########################################################################################################################
@@ -86,26 +34,26 @@ juce_add_plugin(PDrum
 )
 
 target_sources(PDrum PRIVATE
+        Components/Knob/src/KnobComponent.cpp
+        Components/Membrane/src/VibratingMembraneModel.cpp
+        Components/Membrane/src/VibratingMembrane.cpp
+        Components/Resonator/src/ModalResonator.cpp
         PDrum/src/PDrum.cpp
         PDrum/src/PDrumEditor.cpp
 )
 
 target_include_directories(PDrum PRIVATE
+        Components/Knob/inc
+        Components/Membrane/inc
+        Components/Resonator/inc
         PDrum/inc
-)
-
-add_dependencies(PDrum
-        KnobComponent
-        MembraneComponent
-        ResonatorComponent
 )
 
 target_compile_definitions(PDrum PRIVATE JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1)
 
 target_link_libraries(PDrum PRIVATE
-        juce::juce_audio_utils
         juce::juce_audio_basics
-        KnobComponent
-        MembraneComponent
-        ResonatorComponent
+        juce::juce_audio_processors
+        juce::juce_audio_utils
+        juce::juce_gui_basics
 )
