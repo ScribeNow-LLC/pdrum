@@ -148,7 +148,8 @@ void VibratingMembraneModel::parameterChanged(const juce::String &parameterID,
     if (parameterID == "membraneSize") {
         targetDx = newValue / static_cast<float>(gridResolution);
     } else if (parameterID == "membraneTension") {
-        // targetC = 100.0f * newValue;
+        const float cOffset = (newValue * 40.0f) - 20.0f;
+        targetC = 100.0f + cOffset;
         damping = 0.996f + (newValue - 0.5f) * 2.0f * 0.0035f;
     }
 }
