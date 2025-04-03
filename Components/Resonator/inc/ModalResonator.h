@@ -63,6 +63,10 @@ private:
     juce::AudioParameterFloat *widthParam = nullptr;
     juce::AudioParameterFloat *depthParam = nullptr;
 
+    /** Rotation parameters */
+    float rotationAngle = 0.0f;
+    juce::int64 lastFrameTime = 0;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ModalResonator)
 };
 

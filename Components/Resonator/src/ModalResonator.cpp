@@ -14,6 +14,7 @@ ModalResonator::ModalResonator(juce::AudioProcessorValueTreeState &state) :
 
     setSize(400, 400);
     openGLContext.setContinuousRepainting(true);
+    openGLContext.setSwapInterval(60);
 }
 
 /**
@@ -30,7 +31,17 @@ void ModalResonator::initialise() {
 void ModalResonator::render() {
     if (!juce::OpenGLHelpers::isContextActive())
         return;
-
+    /// Compute time delta
+    const uint32_t currentTime = juce::Time::getMillisecondCounter();
+    const float deltaTime =
+            (lastFrameTime > 0)
+                    ? static_cast<float>(currentTime - lastFrameTime) / 1000.0f
+                    : 0.0f;
+    lastFrameTime = currentTime;
+    /// Update rotation angle (degrees per second)
+    rotationAngle += 10.0f * deltaTime; // e.g., 45 degrees per second
+    if (rotationAngle >= 360.0f)
+        rotationAngle -= 360.0f;
     /// Retrieve parameter values
     const float widthValue = widthParam ? widthParam->get() / 10.0f : 0.5f;
     const float depthValue = depthParam ? depthParam->get() / 10.0f : 0.5f;
@@ -50,7 +61,7 @@ void ModalResonator::render() {
             static_cast<GLint>(getHeight() * openGLContext.getRenderingScale());
     juce::gl::glViewport(0, 0, viewportWidth, viewportHeight);
 
-    /// Set up the projection matrix based on the viewport dimensions.
+    /// Set up the projection matrix
     juce::gl::glMatrixMode(juce::gl::GL_PROJECTION);
     juce::gl::glLoadIdentity();
     setPerspective(45.0f,
@@ -58,18 +69,14 @@ void ModalResonator::render() {
                            static_cast<float>(viewportHeight),
                    0.1f, 10.0f);
 
-    /// Set up the modelview matrix.
+    /// Set up modelview matrix
     juce::gl::glMatrixMode(juce::gl::GL_MODELVIEW);
     juce::gl::glLoadIdentity();
     juce::gl::glTranslatef(0.0f, 0.0f, -3.0f);
+    juce::gl::glRotatef(30.0f, 1.0f, 0.0f, 0.0f); // tilt
+    juce::gl::glRotatef(rotationAngle, 0.0f, 1.0f, 0.0f); // spin
 
-    /// Apply transformations to the modelview matrix.
-    juce::gl::glRotatef(30.0f, 1.0f, 0.0f, 0.0f);
-    juce::gl::glRotatef(
-            static_cast<float>(juce::Time::getMillisecondCounter()) * 0.03f,
-            0.0f, 1.0f, 0.0f);
-
-    // Draw the cylinder.
+    /// Draw the cylinder
     drawCylinder(radius, height, 32);
 }
 
@@ -85,7 +92,7 @@ void ModalResonator::drawCylinder(const float radius, const float height,
     const float halfHeight = height / 2.0f;
 
     // Set color for wireframe
-    juce::gl::glColor3f(0.0f, 0.8f, 0.0f);
+    juce::gl::glColor3f(0.0f, 0.5f, 0.0f);
 
     // Draw vertical lines (side edges)
     juce::gl::glBegin(juce::gl::GL_LINES);
