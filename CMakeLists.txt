@@ -38,6 +38,7 @@ target_sources(PDrum PRIVATE
         Components/Membrane/src/VibratingMembraneModel.cpp
         Components/Membrane/src/VibratingMembrane.cpp
         Components/Resonator/src/ModalResonatorModel.cpp
+        Components/Resonator/src/ModalResonator.cpp
         PDrum/src/PDrum.cpp
         PDrum/src/PDrumEditor.cpp
 )
