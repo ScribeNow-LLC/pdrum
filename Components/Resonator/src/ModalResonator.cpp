@@ -83,45 +83,44 @@ void ModalResonator::render() {
 void ModalResonator::drawCylinder(const float radius, const float height,
                                   const int segments) {
     const float halfHeight = height / 2.0f;
-    /// Draw cylinder sides.
-    juce::gl::glColor3f(0.2f, 0.6f, 1.0f);
-    juce::gl::glBegin(juce::gl::GL_QUAD_STRIP);
+
+    // Set color for wireframe
+    juce::gl::glColor3f(0.8f, 0.8f, 1.0f);
+
+    // Draw vertical lines (side edges)
+    juce::gl::glBegin(juce::gl::GL_LINES);
     for (int i = 0; i <= segments; ++i) {
         const float angle = juce::MathConstants<float>::twoPi *
                             static_cast<float>(i) /
                             static_cast<float>(segments);
-        const float x = std::cos(angle);
-        const float z = std::sin(angle);
-        juce::gl::glVertex3f(radius * x, -halfHeight, radius * z);
-        juce::gl::glVertex3f(radius * x, halfHeight, radius * z);
+        const float x = std::cos(angle) * radius;
+        const float z = std::sin(angle) * radius;
+        juce::gl::glVertex3f(x, -halfHeight, z);
+        juce::gl::glVertex3f(x, halfHeight, z);
     }
     juce::gl::glEnd();
 
-    /// Draw top cap.
-    juce::gl::glBegin(juce::gl::GL_TRIANGLE_FAN);
-    juce::gl::glColor3f(0.4f, 0.8f, 1.0f);
-    juce::gl::glVertex3f(0.0f, halfHeight, 0.0f);
+    // Draw top circle
+    juce::gl::glBegin(juce::gl::GL_LINE_LOOP);
     for (int i = 0; i <= segments; ++i) {
         const float angle = juce::MathConstants<float>::twoPi *
                             static_cast<float>(i) /
                             static_cast<float>(segments);
-        const float x = std::cos(angle);
-        const float z = std::sin(angle);
-        juce::gl::glVertex3f(radius * x, halfHeight, radius * z);
+        const float x = std::cos(angle) * radius;
+        const float z = std::sin(angle) * radius;
+        juce::gl::glVertex3f(x, halfHeight, z);
     }
     juce::gl::glEnd();
 
-    /// Draw bottom cap.
-    juce::gl::glBegin(juce::gl::GL_TRIANGLE_FAN);
-    juce::gl::glColor3f(0.1f, 0.3f, 0.6f);
-    juce::gl::glVertex3f(0.0f, -halfHeight, 0.0f);
+    // Draw bottom circle
+    juce::gl::glBegin(juce::gl::GL_LINE_LOOP);
     for (int i = 0; i <= segments; ++i) {
         const float angle = juce::MathConstants<float>::twoPi *
                             static_cast<float>(i) /
                             static_cast<float>(segments);
-        const float x = std::cos(angle);
-        const float z = std::sin(angle);
-        juce::gl::glVertex3f(radius * x, -halfHeight, radius * z);
+        const float x = std::cos(angle) * radius;
+        const float z = std::sin(angle) * radius;
+        juce::gl::glVertex3f(x, -halfHeight, z);
     }
     juce::gl::glEnd();
 }
