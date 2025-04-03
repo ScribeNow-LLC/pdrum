@@ -50,26 +50,31 @@ bool PDrum::isBusesLayoutSupported(const BusesLayout &layouts) const {
  */
 void PDrum::processBlock(juce::AudioBuffer<float> &buffer,
                          juce::MidiBuffer &midiMessages) {
-    const auto numSamples = buffer.getNumSamples();
-    const auto numChannels = buffer.getNumChannels();
-
-    midiMessageCollector.removeNextBlockOfMessages(midiMessages,
-                                                   buffer.getNumSamples());
-
-    for (const auto metadata: midiMessages) {
-        if (const auto &message = metadata.getMessage(); message.isNoteOn()) {
+    const int numSamples = buffer.getNumSamples();
+    const int numChannels = buffer.getNumChannels();
+    const float inverseSampleRate = 1.0f / static_cast<float>(getSampleRate());
+    /// Clear output buffer
+    buffer.clear();
+    /// Process MIDI input
+    midiMessageCollector.removeNextBlockOfMessages(midiMessages, numSamples);
+    for (const auto &metadata: midiMessages) {
+        if (const auto &message = metadata.getMessage(); message.isNoteOn())
+                [[likely]] {
             membraneModel.exciteCenter(0.9f);
         }
     }
-
-    float membraneSample = 0.0f;
-    float resonatorSample = 0.0f;
-    for (int sample = 0; sample < numSamples; ++sample) {
-        membraneSample = membraneModel.processSample(
-                1.0f / static_cast<float>(getSampleRate()));
-        resonatorSample = resonatorModel.process(membraneSample);
-        for (int channel = 0; channel < numChannels; ++channel) {
-            buffer.setSample(channel, sample, resonatorSample);
+    /// Get write pointer for channel 0 (mono processing)
+    float *out = buffer.getWritePointer(0);
+    for (int i = 0; i < numSamples; ++i) {
+        const float membraneOut =
+                membraneModel.processSample(inverseSampleRate);
+        const float resonatorOut = resonatorModel.process(membraneOut);
+        out[i] = resonatorOut;
+    }
+    /// Duplicate mono output to remaining channels
+    if (numChannels > 1) {
+        for (int ch = 1; ch < numChannels; ++ch) {
+            buffer.copyFrom(ch, 0, out, numSamples);
         }
     }
 }

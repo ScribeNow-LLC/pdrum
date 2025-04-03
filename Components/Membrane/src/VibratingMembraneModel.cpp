@@ -107,8 +107,7 @@ float VibratingMembraneModel::processSample(const float timeStep) {
     static constexpr int updateInterval = 10;
     static int counter = 0;
     if (++counter < updateInterval)
-        return current[(gridResolution / 2) * gridResolution +
-                       (gridResolution / 2)];
+        return current[measureIndex];
     counter = 0;
 
     constexpr float smoothingFactor = 0.005f;
@@ -122,14 +121,15 @@ float VibratingMembraneModel::processSample(const float timeStep) {
     const float clampedC2 = std::min(newC2 * newC2, 0.49f);
 
 #pragma omp parallel for schedule(static)
-    for (const int index: activeIndices) {
-        const float laplacian = current[index - gridResolution] +
-                                current[index + gridResolution] +
-                                current[index - 1] + current[index + 1] -
-                                4.0f * current[index];
-
-        next[index] = damping * (2.0f * current[index] - previous[index] +
-                                 clampedC2 * laplacian);
+    for (const int idx : activeIndices) {
+        // Load neighbors only once
+        const float u = current[idx];
+        const float laplacian = current[idx - gridResolution] +
+                                current[idx + gridResolution] +
+                                current[idx - 1] +
+                                current[idx + 1] -
+                                4.0f * u;
+        next[idx] = damping * (2.0f * u - previous[idx] + clampedC2 * laplacian);
     }
 
     std::swap(previous, current);

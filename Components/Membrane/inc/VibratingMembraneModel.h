@@ -20,7 +20,7 @@ public:
      * @param gridResolution Resolution of the grid for the membrane simulation.
      */
     explicit VibratingMembraneModel(juce::AudioProcessorValueTreeState &state,
-                                    int gridResolution = 150);
+                                    int gridResolution = 128);
 
     /**
      * @brief Initializes the simulation parameters.
