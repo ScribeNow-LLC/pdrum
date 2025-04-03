@@ -85,7 +85,7 @@ void ModalResonator::drawCylinder(const float radius, const float height,
     const float halfHeight = height / 2.0f;
 
     // Set color for wireframe
-    juce::gl::glColor3f(0.8f, 0.8f, 1.0f);
+    juce::gl::glColor3f(0.0f, 0.8f, 0.0f);
 
     // Draw vertical lines (side edges)
     juce::gl::glBegin(juce::gl::GL_LINES);
