@@ -41,7 +41,7 @@ private:
     PDrum &processor;
 
     /** 2D vibrating membrane simulation to represent the drum head */
-    VibratingMembrane membrane;
+    // VibratingMembrane membrane;
 
     /** 3D modal resonator simulation to represent the drum body */
     ModalResonator resonator;

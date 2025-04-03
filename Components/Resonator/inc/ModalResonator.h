@@ -1,6 +1,7 @@
 #ifndef MODAL_RESONATOR_H
 #define MODAL_RESONATOR_H
 
+#include <VibratingMembraneModel.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_opengl/juce_opengl.h>
 
@@ -12,9 +13,11 @@ public:
     /**
      * @brief Constructor for the ModalResonator class.
      * @param state Reference to the AudioProcessorValueTreeState for parameter
+     * @param membraneModel Reference to the VibratingMembraneModel for
      * management.
      */
-    explicit ModalResonator(juce::AudioProcessorValueTreeState &state);
+    explicit ModalResonator(juce::AudioProcessorValueTreeState &state,
+                            VibratingMembraneModel &membraneModel);
 
     /**
      * @brief Destructor for the ModalResonator class.
@@ -45,6 +48,8 @@ public:
      */
     static void drawCylinder(float radius, float height, int segments);
 
+    void drawMembraneMesh(float radius, float height) const;
+
     /**
      * @brief Set the perspective projection matrix.
      * @param fovY Field of view in the Y direction (in degrees).
@@ -58,6 +63,9 @@ public:
 private:
     /** Reference to the processor's parameter tree */
     juce::AudioProcessorValueTreeState &parameters;
+
+    /** Reference to the VibratingMembraneModel */
+    VibratingMembraneModel &m_membraneModel;
 
     /** Width and depth parameters */
     juce::AudioParameterFloat *widthParam = nullptr;
