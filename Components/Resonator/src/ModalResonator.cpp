@@ -54,7 +54,8 @@ void ModalResonator::render() {
     /// Clear screen and enable depth test
     juce::OpenGLHelpers::clear(juce::Colours::black);
     juce::gl::glEnable(juce::gl::GL_BLEND);
-    juce::gl::glBlendFunc(juce::gl::GL_SRC_ALPHA, juce::gl::GL_ONE_MINUS_SRC_ALPHA);
+    juce::gl::glBlendFunc(juce::gl::GL_SRC_ALPHA,
+                          juce::gl::GL_ONE_MINUS_SRC_ALPHA);
 
 
     /// Compute viewport dimensions in pixels
@@ -145,7 +146,7 @@ void ModalResonator::drawMembraneMesh(const float radius,
     const float halfHeight = height / 2.0f;
     const float logDenom = std::log10(101.0f);
 
-    juce::gl::glPointSize(2.0f); // Optional: bigger point size
+    juce::gl::glPointSize(2.0f);
     juce::gl::glBegin(juce::gl::GL_POINTS);
 
     for (int y = 0; y < gridResolution; ++y) {
@@ -168,22 +169,20 @@ void ModalResonator::drawMembraneMesh(const float radius,
                                     2.0f -
                             1.0f;
 
-            // Convert to polar and clamp to unit circle
+            /// Convert to polar and clamp to unit circle
             const float d = std::sqrt(r * r + s * s);
             if (d > 1.0f)
-                continue; // outside drum head
+                continue;
 
-            // Map to circle in XZ plane
+            /// Map to circle in XZ plane
             const float theta = std::atan2(s, r);
             const float radial = d * radius;
             const float x3D = std::cos(theta) * radial;
             const float z3D = std::sin(theta) * radial;
-            const float y3D = halfHeight + value * 0.1f; // height scaling
-
-            const float alpha = scaled; // or pow(scaled, 2.0f)
+            const float y3D = halfHeight + value * 0.1f;
 
             if (value >= 0.0f) {
-                juce::gl::glColor4f(scaled, 0.5f - scaled,  0.0f, 0.5f);
+                juce::gl::glColor4f(scaled, 0.5f - scaled, 0.0f, 0.5f);
             } else {
                 juce::gl::glColor4f(0.0f, 0.5f + scaled, 0.0f, 0.5f);
             }
@@ -205,8 +204,12 @@ void ModalResonator::drawMembraneMesh(const float radius,
  */
 void ModalResonator::setPerspective(const float fovY, const float aspect,
                                     const float zNear, const float zFar) {
+    juce::gl::glMatrixMode(juce::gl::GL_PROJECTION);
+    juce::gl::glLoadIdentity();
     const float fH =
             std::tan(fovY * juce::MathConstants<float>::pi / 360.0f) * zNear;
     const float fW = fH * aspect;
     juce::gl::glFrustum(-fW, fW, -fH, fH, zNear, zFar);
+    /// Apply a slight tilt to the camera
+    juce::gl::glRotatef(-25.0f, 0.0f, 0.0f, 1.0f);
 }
