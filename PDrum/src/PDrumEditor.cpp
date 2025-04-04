@@ -21,9 +21,9 @@ PDrumEditor::PDrumEditor(PDrum &p) :
     addAndMakeVisible(randomnessKnob);
     midiKeyboardComponent.setMidiChannel(2);
     midiKeyboardState.addListener(&processor.getMidiMessageCollector());
-    setSize(500, 400);
+    setSize(300, 400);
     setResizable(true, true);
-    setResizeLimits(300, 150, 1000, 600);
+    setResizeLimits(300, 400, 1000, 600);
     startTimerHz(60);
 }
 
@@ -42,24 +42,28 @@ void PDrumEditor::paint(juce::Graphics &g) {
 void PDrumEditor::resized() {
     juce::Rectangle<int> area = getLocalBounds();
 
+    DBG(area.getWidth() << " " << area.getHeight());
+
     const auto keyboardArea = area.removeFromBottom(80).reduced(8);
     midiKeyboardComponent.setBounds(keyboardArea);
 
-    const auto drumArea = area.removeFromLeft(area.getWidth() * 4 / 5);
+    constexpr int knobWidth = 75;
+
+    const auto drumArea = area.removeFromLeft(area.getWidth() - knobWidth);
     resonator.setBounds(drumArea.reduced(8));
 
-    auto knobArea = area.reduced(8);
-    const auto sizeKnobArea = knobArea.removeFromTop(knobArea.getHeight() / 4);
-    membraneSizeKnob.setBounds(sizeKnobArea);
+    auto knobArea = area;
+    const auto sizeKnobArea = knobArea.removeFromTop(knobWidth);
+    membraneSizeKnob.setBounds(sizeKnobArea.reduced(8));
 
-    const auto depthArea = knobArea.removeFromTop(knobArea.getHeight() / 3);
-    depthKnob.setBounds(depthArea);
+    const auto depthArea = knobArea.removeFromTop(knobWidth);
+    depthKnob.setBounds(depthArea.reduced(8));
 
-    const auto tensionArea = knobArea.removeFromTop(knobArea.getHeight() / 2);
-    membraneTensionKnob.setBounds(tensionArea);
+    const auto tensionArea = knobArea.removeFromTop(knobWidth);
+    membraneTensionKnob.setBounds(tensionArea.reduced(8));
 
-    const auto randomnessArea = knobArea;
-    randomnessKnob.setBounds(randomnessArea);
+    const auto randomnessArea = knobArea.removeFromTop(knobWidth);
+    randomnessKnob.setBounds(randomnessArea.reduced(8));
 
     /// TODO - create a Component to draw a 3D cylinder to represent the drum
 }

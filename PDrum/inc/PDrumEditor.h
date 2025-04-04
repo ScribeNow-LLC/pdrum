@@ -4,8 +4,8 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "KnobComponent.h"
-#include "VibratingMembrane.h"
 #include "ModalResonator.h"
+#include "VibratingMembrane.h"
 
 #include "PDrum.h"
 
@@ -60,6 +60,9 @@ private:
 
     /** MIDI keyboard state */
     juce::MidiKeyboardState midiKeyboardState;
+
+    /** Tooltip window for displaying information */
+    juce::TooltipWindow tooltipWindow;
 
     /** MIDI keyboard component for user interaction */
     juce::MidiKeyboardComponent midiKeyboardComponent{

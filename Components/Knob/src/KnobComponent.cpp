@@ -12,13 +12,14 @@ KnobComponent::KnobComponent(juce::AudioProcessorValueTreeState &state,
     attachment(state, paramID, slider) {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 50, 20);
+    slider.setTooltip(titleText);
     addAndMakeVisible(slider);
 
     title.setText(titleText, juce::dontSendNotification);
     title.setJustificationType(juce::Justification::centred);
     title.setFont(juce::Font(juce::FontOptions(14.0f, juce::Font::bold)));
     title.setInterceptsMouseClicks(false, false);
-    addAndMakeVisible(title);
+    // addAndMakeVisible(title);
 }
 
 /**
