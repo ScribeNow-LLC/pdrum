@@ -12,9 +12,9 @@ PDrum::PDrum() :
                        std::make_unique<juce::AudioParameterFloat>(
                                "membraneTension", "Tension", 0.01f, 1.0f, 0.5f),
                        std::make_unique<juce::AudioParameterFloat>(
-                               "membraneSize", "Size", 0.75f, 10.0f, 3.0f),
+                               "membraneSize", "Size", 0.75f, 10.0f, 5.0f),
                        std::make_unique<juce::AudioParameterFloat>(
-                               "depth", "Depth", 0.75f, 10.0f, 3.0f),
+                               "depth", "Depth", 0.75f, 10.0f, 5.0f),
                        std::make_unique<juce::AudioParameterFloat>(
                                "randomness", "Randomness", 0.0f, 50.0f, 5.0f),
                }),
@@ -33,7 +33,7 @@ PDrum::PDrum() :
  */
 void PDrum::prepareToPlay(const double sampleRate, int samplesPerBlock) {
     midiMessageCollector.reset(sampleRate);
-    resonatorModel.setParameters(1.0f, 1.0f, static_cast<float>(sampleRate));
+    resonatorModel.setParameters(5.0f, 5.0f, static_cast<float>(sampleRate));
 }
 
 /**

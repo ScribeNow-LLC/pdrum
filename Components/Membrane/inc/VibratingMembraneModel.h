@@ -81,7 +81,7 @@ private:
     const int gridResolution;
 
     /** The physical size of the membrane. */
-    float physicalSize = 1.0f;
+    float physicalSize = 5.0f;
 
     /** The speed of sound in the membrane. */
     float c = 100.0f;
