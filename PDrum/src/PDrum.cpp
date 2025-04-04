@@ -18,7 +18,12 @@ PDrum::PDrum() :
                        std::make_unique<juce::AudioParameterFloat>(
                                "randomness", "Randomness", 0.0f, 50.0f, 5.0f),
                }),
-    membraneModel(parameters), resonatorModel(parameters) {}
+#ifdef DEBUG
+    membraneModel(parameters),
+#else
+    membraneModel(parameters, 256),
+#endif
+    resonatorModel(parameters) {}
 
 /**
  * @brief Prepare the processor for playback.

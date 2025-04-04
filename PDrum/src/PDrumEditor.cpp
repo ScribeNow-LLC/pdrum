@@ -45,20 +45,18 @@ void PDrumEditor::resized() {
     const auto keyboardArea = area.removeFromBottom(80).reduced(8);
     midiKeyboardComponent.setBounds(keyboardArea);
 
-    auto drumArea = area.removeFromTop(area.getHeight() * 3 / 5).reduced(8);
-    // membrane.setBounds(
-    //         drumArea.removeFromLeft(drumArea.getWidth() / 2).reduced(8));
+    const auto drumArea = area.removeFromLeft(area.getWidth() * 4 / 5);
     resonator.setBounds(drumArea.reduced(8));
 
     auto knobArea = area.reduced(8);
-    const auto sizeKnobArea = knobArea.removeFromLeft(knobArea.getWidth() / 4);
+    const auto sizeKnobArea = knobArea.removeFromTop(knobArea.getHeight() / 4);
     membraneSizeKnob.setBounds(sizeKnobArea);
 
-    const auto tensionArea = knobArea.removeFromLeft(knobArea.getWidth() / 3);
-    membraneTensionKnob.setBounds(tensionArea);
-
-    const auto depthArea = knobArea.removeFromLeft(knobArea.getWidth() / 2);
+    const auto depthArea = knobArea.removeFromTop(knobArea.getHeight() / 3);
     depthKnob.setBounds(depthArea);
+
+    const auto tensionArea = knobArea.removeFromTop(knobArea.getHeight() / 2);
+    membraneTensionKnob.setBounds(tensionArea);
 
     const auto randomnessArea = knobArea;
     randomnessKnob.setBounds(randomnessArea);
