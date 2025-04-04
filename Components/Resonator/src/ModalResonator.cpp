@@ -156,7 +156,7 @@ void ModalResonator::drawMembraneMesh(const float radius,
 
             const float value = current[idx];
             const float logValue =
-                    std::log10(1.0f + std::abs(value) * 300.0f) / logDenom;
+                    std::log10(1.0f + std::abs(value) * 3000.0f) / logDenom;
             const float scaled = juce::jlimit(0.0f, 1.0f, logValue);
 
             const float r = static_cast<float>(x) /
