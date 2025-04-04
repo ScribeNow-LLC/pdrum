@@ -19,10 +19,12 @@ ModalResonatorModel::ModalResonatorModel(
 void ModalResonatorModel::setParameters(const float radiusMeters,
                                         const float depthMeters,
                                         const float sampleRate) {
-    modes.clear();
     m_sampleRate = sampleRate;
-    for (const std::vector<float> besselZeros = {2.405f, 3.832f, 5.520f, 7.016f,
-                                                 8.417f};
+
+    std::vector<BiquadMode> newModes;
+
+    for (const std::vector besselZeros = {2.405f, 3.832f, 5.520f, 7.016f,
+                                          8.417f};
          const float alpha: besselZeros) {
         constexpr int numAxialModes = 3;
         for (int n = 0; n < numAxialModes; ++n) {
@@ -35,9 +37,14 @@ void ModalResonatorModel::setParameters(const float radiusMeters,
                                                depthMeters,
                                        2.0f));
             float q = 10.0f;
-            modes.emplace_back(freq, q, sampleRate);
+            newModes.emplace_back(freq, q, sampleRate);
         }
     }
+    // Begin crossfade: move current modes to oldModes and swap in newModes
+    oldModes = std::move(modes);
+    modes = std::move(newModes);
+    crossfadeCounter = 0;
+    isCrossfading = true;
 }
 
 /**
@@ -46,10 +53,23 @@ void ModalResonatorModel::setParameters(const float radiusMeters,
  * @return The processed output signal.
  */
 float ModalResonatorModel::process(const float input) {
-    float output = 0.0f;
+    float newOutput = 0.0f;
     for (auto &mode: modes)
-        output += mode.process(input);
-    return output;
+        newOutput += mode.process(input);
+    if (isCrossfading) {
+        float oldOutput = 0.0f;
+        for (auto &oldMode: oldModes)
+            oldOutput += oldMode.process(input);
+        const float alpha = static_cast<float>(crossfadeCounter) /
+                            static_cast<float>(crossfadeDuration);
+        const float output = (1.0f - alpha) * oldOutput + alpha * newOutput;
+        if (++crossfadeCounter >= crossfadeDuration) {
+            isCrossfading = false;
+            oldModes.clear();
+        }
+        return output;
+    }
+    return newOutput;
 }
 
 /**

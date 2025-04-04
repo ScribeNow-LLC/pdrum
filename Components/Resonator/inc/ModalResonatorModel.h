@@ -83,6 +83,12 @@ private:
     /** Sample rate of the audio processor */
     float m_sampleRate = 44100.0f;
 
+    /** Crossfading parameters */
+    std::vector<BiquadMode> oldModes;
+    int crossfadeCounter = 0;
+    const int crossfadeDuration = 512;
+    bool isCrossfading = false;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ModalResonatorModel)
 };
 
