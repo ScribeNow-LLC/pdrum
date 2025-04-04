@@ -23,7 +23,8 @@ PDrum::PDrum() :
 #else
     membraneModel(parameters, 256),
 #endif
-    resonatorModel(parameters) {}
+    resonatorModel(parameters) {
+}
 
 /**
  * @brief Prepare the processor for playback.

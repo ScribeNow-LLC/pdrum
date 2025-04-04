@@ -2,7 +2,6 @@
 #define VIBRATING_MEMBRANE_MODEL_H
 
 #include <algorithm>
-#include <cmath>
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 #include <random>
