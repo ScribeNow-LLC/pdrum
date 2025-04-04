@@ -71,6 +71,26 @@ void VibratingMembraneModel::excite(const float amplitude, const int x,
             current[index] = amplitude;
             previous[index] = amplitude * 0.5f;
             measureIndex = index;
+            /// Calculate the distance from the center:
+            const int centerX = gridResolution / 2;
+            const int centerY = gridResolution / 2;
+            const int dx = x - centerX;
+            const int dy = y - centerY;
+            const double distance = std::sqrt(dx * dx + dy * dy);
+            const double normalizedDistance =
+                    distance / (static_cast<float>(gridResolution) / 2);
+            const double offsetDistance = normalizedDistance - 0.5;
+            const double scaledDistance = offsetDistance * 0.5;
+            /// Get the current value of the membrane tension parameter
+            const float tension = std::max(
+                    0.01f,
+                    std::min(1.0f, state.getRawParameterValue("membraneTension")
+                                                   ->load() +
+                                           static_cast<float>(scaledDistance)));
+            /// Use the distance to add an offset to the tension
+            const float cOffset = (tension * 40.0f) - 20.0f;
+            targetC = 100.0f + cOffset;
+            damping = 0.996f + (tension - 0.5f) * 2.0f * 0.0035f;
         }
     }
 }
@@ -95,6 +115,23 @@ void VibratingMembraneModel::exciteCenter(const float amplitude) {
         current[index] = amplitude;
         previous[index] = amplitude * 0.5f;
         measureIndex = index;
+        /// Calculate the distance from the center:
+        const double distance =
+                std::sqrt(offsetX * offsetX + offsetY * offsetY);
+        const double normalizedDistance =
+                distance / (static_cast<float>(gridResolution) / 2);
+        const double offsetDistance = normalizedDistance - 0.5;
+        const double scaledDistance = offsetDistance * 0.5;
+        /// Get the current value of the membrane tension parameter
+        const float tension = std::max(
+                0.01f,
+                std::min(1.0f,
+                         state.getRawParameterValue("membraneTension")->load() +
+                                 static_cast<float>(scaledDistance)));
+        /// Use the distance to add an offset to the tension
+        const float cOffset = (tension * 40.0f) - 20.0f;
+        targetC = 100.0f + cOffset;
+        damping = 0.996f + (tension - 0.5f) * 2.0f * 0.0035f;
     }
 }
 
@@ -121,15 +158,14 @@ float VibratingMembraneModel::processSample(const float timeStep) {
     const float clampedC2 = std::min(newC2 * newC2, 0.49f);
 
 #pragma omp parallel for schedule(static)
-    for (const int idx : activeIndices) {
+    for (const int idx: activeIndices) {
         // Load neighbors only once
         const float u = current[idx];
         const float laplacian = current[idx - gridResolution] +
                                 current[idx + gridResolution] +
-                                current[idx - 1] +
-                                current[idx + 1] -
-                                4.0f * u;
-        next[idx] = damping * (2.0f * u - previous[idx] + clampedC2 * laplacian);
+                                current[idx - 1] + current[idx + 1] - 4.0f * u;
+        next[idx] =
+                damping * (2.0f * u - previous[idx] + clampedC2 * laplacian);
     }
 
     std::swap(previous, current);
