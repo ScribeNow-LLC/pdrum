@@ -1,7 +1,7 @@
 # PDrum
 ### Physical Drum Simulation
 - - -
-<img src="doc/preview.gif" width="50%"  alt="PDrum Preview"/>
+![PDrum Preview](doc/preview.gif)
 
 PDrum is a physical drum simulation that simulates the response of a vibrating membrane and a modal resonator to 
 mimic the effects of a drumhead and drum shell. The simulation is based on the wave equation and uses a finite 
