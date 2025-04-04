@@ -182,10 +182,11 @@ void ModalResonator::drawMembraneMesh(const float radius,
 
             const float alpha = scaled; // or pow(scaled, 2.0f)
 
-            if (value >= 0.0f)
-                juce::gl::glColor4f(0.0f, scaled, 0.0f, alpha);
-            else
-                juce::gl::glColor4f(scaled, 0.0f, 0.0f, alpha);
+            if (value >= 0.0f) {
+                juce::gl::glColor4f(scaled, 0.5f - scaled,  0.0f, 0.5f);
+            } else {
+                juce::gl::glColor4f(0.0f, 0.5f + scaled, 0.0f, 0.5f);
+            }
 
             juce::gl::glVertex3f(x3D, y3D, z3D);
         }
