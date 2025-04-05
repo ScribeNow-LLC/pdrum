@@ -66,7 +66,7 @@ void PDrum::processBlock(juce::AudioBuffer<float> &buffer,
     for (const auto &metadata: midiMessages) {
         if (const auto &message = metadata.getMessage(); message.isNoteOn())
                 [[likely]] {
-            membraneModel.exciteCenter(0.9f);
+            membraneModel.exciteCenter(0.25f);
         }
     }
     /// Get write pointer for channel 0 (mono processing)
