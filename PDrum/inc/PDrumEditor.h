@@ -58,6 +58,10 @@ private:
     /** Randomness knob */
     KnobComponent randomnessKnob;
 
+    /// TODO - create grid of 12 buttons for each note to correspond to a preset
+    /// TODO - for each button, have a unique membrane and resonator.
+    /// TODO - MIDI key activates each membrane and resonator for 1 second?
+
     /** MIDI keyboard state */
     juce::MidiKeyboardState midiKeyboardState;
 
