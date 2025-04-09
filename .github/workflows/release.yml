@@ -1,0 +1,308 @@
+name: PDrum Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  check-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      is_latest: ${{ steps.check_tag.outputs.is_latest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch origin/main
+        run: git fetch origin main
+
+      - name: Ensure tag is on main
+        id: check_tag
+        run: |
+          TAG_COMMIT=$(git rev-parse ${{ github.ref_name }})
+          MAIN_COMMIT=$(git rev-parse origin/main)
+
+          echo "Tag points to:     $TAG_COMMIT"
+          echo "Main branch head:  $MAIN_COMMIT"
+
+          if [ "$TAG_COMMIT" = "$MAIN_COMMIT" ]; then
+            echo "✅ Tag points to latest commit on main."
+            echo "is_latest=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Tag does not point to the latest commit on main."
+            echo "is_latest=false" >> $GITHUB_OUTPUT
+          fi
+
+  build-macos:
+    needs: check-tag
+    if: needs.check-tag.outputs.is_latest == 'true'
+    runs-on: macos-13
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          brew install cmake ninja
+
+      - name: Set up Code Signing Certificate
+        run: |
+          echo "$MACOS_CERTIFICATE_BASE64" | base64 --decode > certificate.p12
+
+          security create-keychain -p "build" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "build" build.keychain
+          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain
+          security list-keychains -s build.keychain
+          security find-identity -v -p codesigning build.keychain
+        env:
+          MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
+      - name: Configure
+        run: cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -G Ninja -B build -S .
+
+      - name: Build
+        run: cmake --build build --target PDrum_All -j 6
+
+      - name: Sign Application
+        run: |
+          set -e
+          CERT_NAME=$(security find-identity -v -p codesigning build.keychain | grep "ScribeNow LLC" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
+          echo "Using cert: $CERT_NAME"
+          security unlock-keychain -p "build" build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain
+
+          echo "Signing main binary..."
+          codesign --force --verbose --sign "$CERT_NAME" \
+            --options runtime --timestamp \
+            build/PDrum_artefacts/Release/Standalone/PDrum.app/Contents/MacOS/PDrum
+
+          echo "Signing full app bundle..."
+          codesign --force --deep --verbose --sign "$CERT_NAME" \
+            --options runtime --timestamp \
+            build/PDrum_artefacts/Release/Standalone/PDrum.app
+
+          echo "Verifying signature..."
+          codesign --verify --deep --strict --verbose=4 build/PDrum_artefacts/Release/Standalone/PDrum.app
+
+      - name: Sign VST3
+        run: |
+          set -e
+          CERT_NAME=$(security find-identity -v -p codesigning build.keychain | grep "ScribeNow LLC" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
+          echo "Using cert: $CERT_NAME"
+          security unlock-keychain -p "build" build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain
+
+          echo "Signing VST3..."
+          codesign --force --deep --verbose --sign "$CERT_NAME" \
+            --options runtime --timestamp \
+            build/PDrum_artefacts/Release/VST3/PDrum.vst3
+
+          echo "Verifying signature..."
+          codesign --verify --deep --strict --verbose=4 build/PDrum_artefacts/Release/VST3/PDrum.vst3
+
+      - name: Sign AU
+        run: |
+          set -e
+          CERT_NAME=$(security find-identity -v -p codesigning build.keychain | grep "ScribeNow LLC" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
+          echo "Using cert: $CERT_NAME"
+          security unlock-keychain -p "build" build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain
+
+          echo "Signing AU..."
+          codesign --force --deep --verbose --sign "$CERT_NAME" \
+            --options runtime --timestamp \
+            build/PDrum_artefacts/Release/AU/PDrum.component
+
+          echo "Verifying signature..."
+          codesign --verify --deep --strict --verbose=4 build/PDrum_artefacts/Release/AU/PDrum.component
+
+      - name: Package for notarization
+        run: |
+          mkdir -p dist/notarization
+          cp -R build/PDrum_artefacts/Release/Standalone/PDrum.app dist/notarization/
+          cp -R build/PDrum_artefacts/Release/VST3/PDrum.vst3 dist/notarization/
+          cp -R build/PDrum_artefacts/Release/AU/PDrum.component dist/notarization/
+          cd dist && zip -r PDrum-notarization.zip notarization
+
+      - name: Notarize App
+        run: |
+          xcrun notarytool submit dist/PDrum-notarization.zip \
+            --apple-id "${{ secrets.APPLE_DEVELOPER_ID }}" \
+            --team-id "${{ secrets.APPLE_TEAM_ID }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
+            --wait --output-format json > notarization_result.json
+
+          echo "Notarization result:"
+          cat notarization_result.json
+
+      - name: Staple Notarization Ticket
+        run: |
+          xcrun stapler staple build/PDrum_artefacts/Release/Standalone/PDrum.app
+          xcrun stapler staple build/PDrum_artefacts/Release/VST3/PDrum.vst3
+          xcrun stapler staple build/PDrum_artefacts/Release/AU/PDrum.component
+          xcrun stapler validate build/PDrum_artefacts/Release/Standalone/PDrum.app
+          xcrun stapler validate build/PDrum_artefacts/Release/VST3/PDrum.vst3
+          xcrun stapler validate build/PDrum_artefacts/Release/AU/PDrum.component
+
+      - name: Package for release
+        run: |
+          mkdir -p dist/macos
+          cp -R build/PDrum_artefacts/Release/Standalone/PDrum.app dist/macos/
+          cp -R build/PDrum_artefacts/Release/VST3/PDrum.vst3 dist/macos/
+          cp -R build/PDrum_artefacts/Release/AU/PDrum.component dist/macos/
+          cd dist/macos && zip -r ../PDrum-macos.zip *
+
+      - name: Verify Gatekeeper
+        run: |
+          spctl --assess --type exec --verbose=4 dist/macos/PDrum.app
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDrum-macOS
+          path: dist/PDrum-macos.zip
+
+      - name: Cleanup Keychain
+        if: always()
+        run: |
+          security delete-keychain build.keychain
+
+  build-windows:
+    needs: check-tag
+    if: needs.check-tag.outputs.is_latest == 'true'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Ninja
+        run: choco install ninja
+
+      - name: Set up MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure with MSVC
+        run: cmake -DCMAKE_BUILD_TYPE=Release -G "Ninja" -B build -S .
+
+      - name: Build
+        run: cmake --build build --target PDrum_All -j 6
+
+      - name: Package
+        run: |
+          mkdir package
+          mkdir dist
+          copy build\PDrum_artefacts\Release\Standalone\PDrum.exe package\
+          copy build\PDrum_artefacts\Release\VST3\PDrum.vst3 package\
+          powershell Compress-Archive -Path package\* -DestinationPath dist\PDrum-windows.zip
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDrum-Windows
+          path: dist\PDrum-windows.zip
+
+  build-linux:
+    needs: check-tag
+    if: needs.check-tag.outputs.is_latest == 'true'
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            cmake ninja-build build-essential \
+            libasound2-dev libjack-jackd2-dev \
+            libx11-dev libfreetype6-dev libfontconfig1-dev \
+            libgl1-mesa-dev libcurl4-openssl-dev \
+            libxrandr-dev libxinerama-dev libxcursor-dev \
+            libxcomposite-dev libxext-dev \
+            libgtk2.0-dev
+
+      - name: Configure
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+                -DCMAKE_EXE_LINKER_FLAGS="-lcurl" \
+                -G Ninja -B build -S .
+
+      - name: Build
+        run: cmake --build build --target PDrum_All -j 6
+
+      - name: Package
+        run: |
+          mkdir -p package
+          mkdir -p dist
+          cp -r build/PDrum_artefacts/Release/Standalone/PDrum package/
+          cp -r build/PDrum_artefacts/Release/VST3/PDrum.vst3 package/
+          cd package && zip -r ../dist/PDrum-linux.zip *
+
+      - name: Print MD5 Checksums
+        run: |
+          md5sum build/PDrum_artefacts/Release/Standalone/PDrum > app_md5.txt
+          find build/PDrum_artefacts/Release/VST3/PDrum.vst3 -type f -exec md5sum {} \; | sort | md5sum > vst3_md5.txt
+          md5sum dist/PDrum-linux.zip > dist_md5.txt
+          cat app_md5.txt
+          cat vst3_md5.txt
+          cat dist_md5.txt
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDrum-Linux
+          path: dist/PDrum-linux.zip
+
+  release:
+    needs: [ build-macos, build-windows, build-linux ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PDrum-macOS
+          path: artifacts/
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PDrum-Windows
+          path: artifacts/
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PDrum-Linux
+          path: artifacts/
+
+      - name: Display downloaded files
+        run: ls -R artifacts
+
+      - name: Create GitHub Release and Upload Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: |
+            artifacts/PDrum-macos.zip
+            artifacts/PDrum-windows.zip
+            artifacts/PDrum-linux.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
