@@ -76,5 +76,5 @@ target_link_libraries(PDrum PRIVATE
 # Link libcurl on Linux only
 if (UNIX AND NOT APPLE)
     find_package(CURL REQUIRED)
-    target_link_libraries(Graphverb PRIVATE CURL::libcurl)
+    target_link_libraries(PDrum PRIVATE CURL::libcurl)
 endif ()
