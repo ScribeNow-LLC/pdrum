@@ -19,3 +19,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+This project uses third-party components, which are subject to their respective licenses:
+
+- Steinberg VST 3 SDK is used under the [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html).
+
+See `LICENSES/steinberg_sdk_license.txt` for details.
