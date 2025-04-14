@@ -1,4 +1,4 @@
-name: PDrum PR Check
+name: PR Check
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 env:
   BUILD_TYPE: Release
+  TARGET_NAME: pdrum
 
 jobs:
   build-macos:
@@ -25,7 +26,7 @@ jobs:
         run: cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -G Ninja -B build -S .
 
       - name: Build
-        run: cmake --build build --target PDrum_All -j 6
+        run: cmake --build build --target ${{ env.TARGET_NAME }}_All -j
 
   build-windows:
     runs-on: windows-latest
@@ -44,7 +45,7 @@ jobs:
         run: cmake -DCMAKE_BUILD_TYPE=Release -G "Ninja" -B build -S .
 
       - name: Build
-        run: cmake --build build --target PDrum_All -j 6
+        run: cmake --build build --target ${{ env.TARGET_NAME }}_All -j
 
   build-linux:
     runs-on: ubuntu-22.04
@@ -72,4 +73,4 @@ jobs:
                 -G Ninja -B build -S .
 
       - name: Build
-        run: cmake --build build --target PDrum_All -j 6
+        run: cmake --build build --target ${{ env.TARGET_NAME }}_All -j

@@ -1,4 +1,4 @@
-name: PDrum Release
+name: Release
 
 permissions:
   contents: write
@@ -53,126 +53,312 @@ jobs:
       - name: Install Dependencies
         run: |
           brew install cmake ninja
+          brew install create-dmg
 
-      - name: Set up Code Signing Certificate
+      - name: Set up Certificates
         run: |
-          echo "$MACOS_CERTIFICATE_BASE64" | base64 --decode > certificate.p12
+          echo "$MACOS_APP_CERTIFICATE_BASE64" | base64 --decode > app_certificate.p12
+          echo "$MACOS_INSTALLER_CERTIFICATE_BASE64" | base64 --decode > installer_certificate.p12
 
           security create-keychain -p "build" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "build" build.keychain
-          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security import app_certificate.p12 -k build.keychain -P "$MACOS_APP_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security import installer_certificate.p12 -k build.keychain -P "$MACOS_INSTALLER_CERTIFICATE_PASSWORD" -T /usr/bin/productsign
           security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain
-          security list-keychains -s build.keychain
-          security find-identity -v -p codesigning build.keychain
         env:
-          MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
-          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_APP_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          MACOS_APP_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_INSTALLER_CERTIFICATE_BASE64: ${{ secrets.MACOS_INSTALLER_CERTIFICATE_BASE64 }}
+          MACOS_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_INSTALLER_CERTIFICATE_PASSWORD }}
+
+      - name: Set Environment Variables
+        run: |
+          TAG_NAME=${{ github.ref_name }}
+          echo "VERSION_NUMBER=${TAG_NAME#v}" >> $GITHUB_ENV
+          BUNDLE_ID=$(sed -n 's/^set(JUCE_BUNDLE_ID[[:space:]]*"\(.*\)")/\1/p' CMakeLists.txt)
+          PRODUCT_NAME=$(sed -n 's/^set(JUCE_PRODUCT_NAME[[:space:]]*"\(.*\)")/\1/p' CMakeLists.txt)
+          TARGET_NAME=$(sed -n 's/^set(TARGET_NAME[[:space:]]*"\(.*\)")/\1/p' CMakeLists.txt)
+          
+          echo "BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
+          echo "PRODUCT_NAME=$PRODUCT_NAME" >> $GITHUB_ENV
+          echo "PRODUCT_NAME_U=${PRODUCT_NAME// /_}" >> $GITHUB_ENV
+          echo "TARGET_NAME=$TARGET_NAME" >> $GITHUB_ENV
 
       - name: Configure
         run: cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -G Ninja -B build -S .
 
       - name: Build
-        run: cmake --build build --target PDrum_All -j 6
+        run: cmake --build build --target ${{ env.TARGET_NAME }}_All -j
 
       - name: Sign Application
         run: |
           set -e
-          CERT_NAME=$(security find-identity -v -p codesigning build.keychain | grep "ScribeNow LLC" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
+          CERT_NAME=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
           echo "Using cert: $CERT_NAME"
-          security unlock-keychain -p "build" build.keychain
-          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain
+          security unlock-keychain -p "build" build.keychain > /dev/null 2>&1
+          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain > /dev/null 2>&1
 
           echo "Signing main binary..."
           codesign --force --verbose --sign "$CERT_NAME" \
             --options runtime --timestamp \
-            build/PDrum_artefacts/Release/Standalone/PDrum.app/Contents/MacOS/PDrum
+            --entitlements Entitlements.plist \
+            "build/${{ env.TARGET_NAME }}_artefacts/Release/Standalone/${{ env.PRODUCT_NAME }}.app/Contents/MacOS/${{ env.PRODUCT_NAME }}"
 
           echo "Signing full app bundle..."
-          codesign --force --deep --verbose --sign "$CERT_NAME" \
+          codesign --force --verbose --sign "$CERT_NAME" \
             --options runtime --timestamp \
-            build/PDrum_artefacts/Release/Standalone/PDrum.app
+            --entitlements Entitlements.plist \
+            "build/${{ env.TARGET_NAME }}_artefacts/Release/Standalone/${{ env.PRODUCT_NAME }}.app"
 
           echo "Verifying signature..."
-          codesign --verify --deep --strict --verbose=4 build/PDrum_artefacts/Release/Standalone/PDrum.app
+          codesign --verify --strict --verbose=4 "build/${{ env.TARGET_NAME }}_artefacts/Release/Standalone/${{ env.PRODUCT_NAME }}.app"
 
       - name: Sign VST3
         run: |
           set -e
-          CERT_NAME=$(security find-identity -v -p codesigning build.keychain | grep "ScribeNow LLC" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
+          CERT_NAME=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
           echo "Using cert: $CERT_NAME"
-          security unlock-keychain -p "build" build.keychain
-          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain
+          security unlock-keychain -p "build" build.keychain > /dev/null 2>&1
+          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain > /dev/null 2>&1
 
           echo "Signing VST3..."
-          codesign --force --deep --verbose --sign "$CERT_NAME" \
+          codesign --force --verbose --sign "$CERT_NAME" \
             --options runtime --timestamp \
-            build/PDrum_artefacts/Release/VST3/PDrum.vst3
+            --entitlements Entitlements.plist \
+            "build/${{ env.TARGET_NAME }}_artefacts/Release/VST3/${{ env.PRODUCT_NAME }}.vst3"
 
           echo "Verifying signature..."
-          codesign --verify --deep --strict --verbose=4 build/PDrum_artefacts/Release/VST3/PDrum.vst3
+          codesign --verify --strict --verbose=4 "build/${{ env.TARGET_NAME }}_artefacts/Release/VST3/${{ env.PRODUCT_NAME }}.vst3"
 
       - name: Sign AU
         run: |
           set -e
-          CERT_NAME=$(security find-identity -v -p codesigning build.keychain | grep "ScribeNow LLC" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
+          CERT_NAME=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
           echo "Using cert: $CERT_NAME"
-          security unlock-keychain -p "build" build.keychain
-          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain
+          security unlock-keychain -p "build" build.keychain > /dev/null 2>&1
+          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain > /dev/null 2>&1
 
           echo "Signing AU..."
-          codesign --force --deep --verbose --sign "$CERT_NAME" \
+          codesign --force --verbose --sign "$CERT_NAME" \
             --options runtime --timestamp \
-            build/PDrum_artefacts/Release/AU/PDrum.component
+            --entitlements Entitlements.plist \
+            "build/${{ env.TARGET_NAME }}_artefacts/Release/AU/${{ env.PRODUCT_NAME }}.component"
 
           echo "Verifying signature..."
-          codesign --verify --deep --strict --verbose=4 build/PDrum_artefacts/Release/AU/PDrum.component
+          codesign --verify --strict --verbose=4 "build/${{ env.TARGET_NAME }}_artefacts/Release/AU/${{ env.PRODUCT_NAME }}.component"
 
-      - name: Package for notarization
+      - name: Prepare for pkgbuild
         run: |
-          mkdir -p dist/notarization
-          cp -R build/PDrum_artefacts/Release/Standalone/PDrum.app dist/notarization/
-          cp -R build/PDrum_artefacts/Release/VST3/PDrum.vst3 dist/notarization/
-          cp -R build/PDrum_artefacts/Release/AU/PDrum.component dist/notarization/
-          cd dist && zip -r PDrum-notarization.zip notarization
+          mkdir -p "pkg/${{ env.PRODUCT_NAME_U }}_Installer/Root/Library/Audio/Plug-Ins/VST3"
+          mkdir -p "pkg/${{ env.PRODUCT_NAME_U }}_Installer/Root/Library/Audio/Plug-Ins/Components"
+          
+          cp -Rp "build/${{ env.TARGET_NAME }}_artefacts/Release/VST3/${{ env.PRODUCT_NAME }}.vst3" \
+                "pkg/${{ env.PRODUCT_NAME_U }}_Installer/Root/Library/Audio/Plug-Ins/VST3/${{ env.PRODUCT_NAME_U }}.vst3"
+          cp -Rp "build/${{ env.TARGET_NAME }}_artefacts/Release/AU/${{ env.PRODUCT_NAME }}.component" \
+                "pkg/${{ env.PRODUCT_NAME_U }}_Installer/Root/Library/Audio/Plug-Ins/Components/${{ env.PRODUCT_NAME_U }}.component"
 
-      - name: Notarize App
+      - name: pkgbuild
         run: |
-          xcrun notarytool submit dist/PDrum-notarization.zip \
+          pkgbuild \
+          --root "pkg/${{ env.PRODUCT_NAME_U }}_Installer/Root/Library/Audio/Plug-Ins/VST3" \
+          --install-location /Library/Audio/Plug-Ins/VST3 \
+          --identifier ${{ env.BUNDLE_ID }}.vst3 \
+          --version ${{ env.VERSION_NUMBER }} \
+          "${{ env.PRODUCT_NAME_U }}_VST3_unsigned.pkg"
+          pkgbuild \
+          --root "pkg/${{ env.PRODUCT_NAME_U }}_Installer/Root/Library/Audio/Plug-Ins/Components" \
+          --install-location /Library/Audio/Plug-Ins/Components \
+          --identifier ${{ env.BUNDLE_ID }}.component \
+          --version ${{ env.VERSION_NUMBER }} \
+          "${{ env.PRODUCT_NAME_U }}_AU_unsigned.pkg"
+
+      - name: Sign individual packages
+        run: |
+          set -e
+          CERT_NAME=$(security find-identity -v build.keychain | grep "Developer ID Installer" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
+          echo "Using cert: $CERT_NAME"
+          security unlock-keychain -p "build" build.keychain > /dev/null 2>&1
+          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain > /dev/null 2>&1
+
+          echo "Signing VST3 Installer..."
+          productsign --sign "$CERT_NAME" \
+          "${{ env.PRODUCT_NAME_U }}_VST3_unsigned.pkg" \
+          "dist/${{ env.PRODUCT_NAME_U }}_VST3.pkg"
+
+          echo "Verifying VST3 signature..."
+          pkgutil --check-signature "dist/${{ env.PRODUCT_NAME_U }}_VST3.pkg"
+          
+          echo "Signing AU Installer..."
+          productsign --sign "$CERT_NAME" \
+          "${{ env.PRODUCT_NAME_U }}_AU_unsigned.pkg" \
+          "dist/${{ env.PRODUCT_NAME_U }}_AU.pkg"
+
+          echo "Verifying AU signature..."
+          pkgutil --check-signature "dist/${{ env.PRODUCT_NAME_U }}_AU.pkg"
+
+      - name: Notarize Individual Installers
+        run: |
+          xcrun notarytool submit "dist/${{ env.PRODUCT_NAME_U }}_VST3.pkg" \
+            --apple-id "${{ secrets.APPLE_DEVELOPER_ID }}" \
+            --team-id "${{ secrets.APPLE_TEAM_ID }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
+            --wait --output-format json > vst3_installer_notarization_result.json
+          xcrun notarytool submit "dist/${{ env.PRODUCT_NAME_U }}_AU.pkg" \
+            --apple-id "${{ secrets.APPLE_DEVELOPER_ID }}" \
+            --team-id "${{ secrets.APPLE_TEAM_ID }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
+            --wait --output-format json > au_installer_notarization_result.json
+
+      - name: Staple Notarization Tickets
+        run: |
+          xcrun stapler staple "dist/${{ env.PRODUCT_NAME_U }}_VST3.pkg"
+          xcrun stapler staple "dist/${{ env.PRODUCT_NAME_U }}_AU.pkg"
+
+      - name: Prepare for create-dmg
+        run: |
+          mkdir -p dmg_staging
+          cp -Rp "build/${{ env.TARGET_NAME }}_artefacts/Release/Standalone/${{ env.PRODUCT_NAME }}.app" "dmg_staging/${{ env.PRODUCT_NAME }}.app"
+          chmod +x "build/${{ env.TARGET_NAME }}_artefacts/Release/Standalone/${{ env.PRODUCT_NAME }}.app"
+          ln -s /Applications dmg_staging/"Applications"
+
+      - name: create-dmg
+        run: |
+          create-dmg \
+          --volname "${{ env.PRODUCT_NAME }} Installer" \
+          --window-pos 200 120 \
+          --window-size 600 400 \
+          --icon-size 96 \
+          --icon "${{ env.PRODUCT_NAME }}.app" 80 200 \
+          --icon "Applications" 300 200 \
+          --hide-extension "${{ env.PRODUCT_NAME }}.app" \
+          --app-drop-link 300 200 \
+          "pkg/${{ env.PRODUCT_NAME_U }}_App.dmg" \
+          dmg_staging/
+
+      - name: Sign DMG
+        run: |
+          set -e
+          CERT_NAME=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
+          echo "Using cert: $CERT_NAME"
+          security unlock-keychain -p "build" build.keychain > /dev/null 2>&1
+          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain > /dev/null 2>&1
+
+          echo "Signing DMG..."
+          codesign --force --verbose --sign "$CERT_NAME" \
+            --options runtime --timestamp \
+            --entitlements Entitlements.plist \
+            "pkg/${{ env.PRODUCT_NAME_U }}_App.dmg"
+
+          echo "Verifying signature..."
+          codesign --verify --strict --verbose=4 "pkg/${{ env.PRODUCT_NAME_U }}_App.dmg"
+
+      - name: Notarize DMG
+        run: |
+          xcrun notarytool submit "pkg/${{ env.PRODUCT_NAME_U }}_App.dmg" \
+            --apple-id "${{ secrets.APPLE_DEVELOPER_ID }}" \
+            --team-id "${{ secrets.APPLE_TEAM_ID }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
+            --wait --output-format json > app_installer_notarization_result.json
+
+      - name: Staple Notarization Ticket
+        run: |
+          xcrun stapler staple "pkg/${{ env.PRODUCT_NAME_U }}_App.dmg"
+
+      - name: Create postinstall script
+        run: |
+          mkdir -p dist/Scripts
+          cat << 'EOF' > dist/Scripts/postinstall
+          #!/bin/bash
+          
+          DMG_PATH="/Library/Application Support/${{ env.PRODUCT_NAME }}/${{ env.PRODUCT_NAME_U }}_App.dmg"
+          
+          /usr/bin/open "$DMG_PATH"
+          
+          exit 0
+          EOF
+          
+          chmod +x dist/Scripts/postinstall
+
+      - name: Prepare for productbuild
+        run: |
+          echo "Creating payload..."
+          mkdir -p "dist/DmgPayload/Library/Application Support/${{ env.PRODUCT_NAME }}"
+          cp "pkg/${{ env.PRODUCT_NAME_U }}_App.dmg" "dist/DmgPayload/Library/Application Support/${{ env.PRODUCT_NAME }}/"
+          
+          echo "Packaging..."
+          pkgbuild \
+          --root dist/DmgPayload \
+          --scripts dist/Scripts \
+          --install-location / \
+          --identifier ${{ env.BUNDLE_ID }}.dmgpayload \
+          --version ${{ env.VERSION_NUMBER }} \
+          "pkg/${{ env.PRODUCT_NAME_U }}_DMG_unsigned.pkg"
+          
+          echo "Signing..."
+          set -e
+          CERT_NAME=$(security find-identity -v build.keychain | grep "Developer ID Installer" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
+          echo "Using cert: $CERT_NAME"
+          security unlock-keychain -p "build" build.keychain > /dev/null 2>&1
+          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain > /dev/null 2>&1
+          productsign --sign "$CERT_NAME" \
+          "pkg/${{ env.PRODUCT_NAME_U }}_DMG_unsigned.pkg" \
+          "dist/${{ env.PRODUCT_NAME_U }}_DMG.pkg"
+          pkgutil --check-signature "dist/${{ env.PRODUCT_NAME_U }}_DMG.pkg"
+          
+          echo "Notarizing..."
+          xcrun notarytool submit "dist/${{ env.PRODUCT_NAME_U }}_DMG.pkg" \
+            --apple-id "${{ secrets.APPLE_DEVELOPER_ID }}" \
+            --team-id "${{ secrets.APPLE_TEAM_ID }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
+            --wait --output-format json > dmg_installer_notarization_result.json
+          
+          echo "Stapling..."
+          xcrun stapler staple "dist/${{ env.PRODUCT_NAME_U }}_DMG.pkg"
+
+      - name: productbuild
+        run: |
+          cp LICENSE dist/Resources/license.txt
+          ls -l
+          productbuild \
+          --distribution dist/distribution.xml \
+          --resources dist/Resources \
+          --package-path dist \
+          "${{ env.PRODUCT_NAME_U }}_macOS_Unsigned.pkg"
+
+      - name: Sign installer
+        run: |
+          set -e
+          CERT_NAME=$(security find-identity -v build.keychain | grep "Developer ID Installer" | sed -E 's/.*"(.+)"$/\1/' | head -n 1)
+          echo "Using cert: $CERT_NAME"
+          security unlock-keychain -p "build" build.keychain > /dev/null 2>&1
+          security set-key-partition-list -S apple-tool:,apple: -s -k "build" build.keychain > /dev/null 2>&1
+
+          echo "Signing Installer..."
+          productsign --sign "$CERT_NAME" \
+          "${{ env.PRODUCT_NAME_U }}_macOS_Unsigned.pkg" \
+          "${{ env.PRODUCT_NAME_U }}_macOS.pkg"
+
+          echo "Verifying signature..."
+          pkgutil --check-signature "${{ env.PRODUCT_NAME_U }}_macOS.pkg"
+
+      - name: Notarize Installer
+        run: |
+          xcrun notarytool submit "${{ env.PRODUCT_NAME_U }}_macOS.pkg" \
             --apple-id "${{ secrets.APPLE_DEVELOPER_ID }}" \
             --team-id "${{ secrets.APPLE_TEAM_ID }}" \
             --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
             --wait --output-format json > notarization_result.json
 
-          echo "Notarization result:"
-          cat notarization_result.json
-
       - name: Staple Notarization Ticket
         run: |
-          xcrun stapler staple build/PDrum_artefacts/Release/Standalone/PDrum.app
-          xcrun stapler staple build/PDrum_artefacts/Release/VST3/PDrum.vst3
-          xcrun stapler staple build/PDrum_artefacts/Release/AU/PDrum.component
-          xcrun stapler validate build/PDrum_artefacts/Release/Standalone/PDrum.app
-          xcrun stapler validate build/PDrum_artefacts/Release/VST3/PDrum.vst3
-          xcrun stapler validate build/PDrum_artefacts/Release/AU/PDrum.component
-
-      - name: Package for release
-        run: |
-          mkdir -p dist/macos
-          cp -R build/PDrum_artefacts/Release/Standalone/PDrum.app dist/macos/
-          cp -R build/PDrum_artefacts/Release/VST3/PDrum.vst3 dist/macos/
-          cp -R build/PDrum_artefacts/Release/AU/PDrum.component dist/macos/
-          cd dist/macos && zip -r ../PDrum-macos.zip *
-
-      - name: Verify Gatekeeper
-        run: |
-          spctl --assess --type exec --verbose=4 dist/macos/PDrum.app
+          xcrun stapler staple "${{ env.PRODUCT_NAME_U }}_macOS.pkg"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: PDrum-macOS
-          path: dist/PDrum-macos.zip
+          name: ${{ env.PRODUCT_NAME_U }}-macOS
+          path: ${{ env.PRODUCT_NAME_U }}_macOS.pkg
 
       - name: Cleanup Keychain
         if: always()
@@ -194,25 +380,45 @@ jobs:
       - name: Set up MSVC Developer Command Prompt
         uses: ilammy/msvc-dev-cmd@v1
 
+      - name: Set Environment Variables
+        shell: pwsh
+        run: |
+          $TAG_NAME = "${{ github.ref_name }}"
+          $VERSION_NUMBER = $TAG_NAME -replace '^v', ''
+
+          $cmakeFile = Get-Content "CMakeLists.txt"
+
+          $BUNDLE_ID = ($cmakeFile | Select-String 'set\(JUCE_BUNDLE_ID\s*"(.*?)"\)' | ForEach-Object { $_.Matches[0].Groups[1].Value }).Trim()
+          $PRODUCT_NAME = ($cmakeFile | Select-String 'set\(JUCE_PRODUCT_NAME\s*"(.*?)"\)' | ForEach-Object { $_.Matches[0].Groups[1].Value }).Trim()
+          $PRODUCT_NAME_U = $PRODUCT_NAME -replace ' ', '_'
+          $TARGET_NAME = ($cmakeFile | Select-String 'set\(TARGET_NAME\s*"(.*?)"\)' | ForEach-Object { $_.Matches[0].Groups[1].Value }).Trim()
+
+          "VERSION_NUMBER=$VERSION_NUMBER" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "BUNDLE_ID=$BUNDLE_ID" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PRODUCT_NAME=$PRODUCT_NAME" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PRODUCT_NAME_U=$PRODUCT_NAME_U" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "TARGET_NAME=$TARGET_NAME" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Configure with MSVC
         run: cmake -DCMAKE_BUILD_TYPE=Release -G "Ninja" -B build -S .
 
       - name: Build
-        run: cmake --build build --target PDrum_All -j 6
+        run: cmake --build build --target ${{ env.TARGET_NAME }}_All -j
 
       - name: Package
+        shell: pwsh
         run: |
           mkdir package
-          mkdir dist
-          copy build\PDrum_artefacts\Release\Standalone\PDrum.exe package\
-          copy build\PDrum_artefacts\Release\VST3\PDrum.vst3 package\
-          powershell Compress-Archive -Path package\* -DestinationPath dist\PDrum-windows.zip
+          copy "build\${{ env.TARGET_NAME }}_artefacts\Release\Standalone\${{ env.PRODUCT_NAME }}.exe" package\
+          copy "build\${{ env.TARGET_NAME }}_artefacts\Release\VST3\${{ env.PRODUCT_NAME }}.vst3" package\
+          $zipName = "${{ env.PRODUCT_NAME_U }}_windows.zip"
+          Compress-Archive -Path package\* -DestinationPath "$zipName"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: PDrum-Windows
-          path: dist\PDrum-windows.zip
+          name: ${{ env.PRODUCT_NAME_U }}-Windows
+          path: ${{ env.PRODUCT_NAME_U }}_windows.zip
 
   build-linux:
     needs: check-tag
@@ -235,6 +441,19 @@ jobs:
             libxcomposite-dev libxext-dev \
             libgtk2.0-dev
 
+      - name: Set Environment Variables
+        run: |
+          TAG_NAME=${{ github.ref_name }}
+          echo "VERSION_NUMBER=${TAG_NAME#v}" >> $GITHUB_ENV
+          BUNDLE_ID=$(sed -n 's/^set(JUCE_BUNDLE_ID[[:space:]]*"\(.*\)")/\1/p' CMakeLists.txt)
+          PRODUCT_NAME=$(sed -n 's/^set(JUCE_PRODUCT_NAME[[:space:]]*"\(.*\)")/\1/p' CMakeLists.txt)
+          TARGET_NAME=$(sed -n 's/^set(TARGET_NAME[[:space:]]*"\(.*\)")/\1/p' CMakeLists.txt)
+
+          echo "BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
+          echo "PRODUCT_NAME=$PRODUCT_NAME" >> $GITHUB_ENV
+          echo "PRODUCT_NAME_U=${PRODUCT_NAME// /_}" >> $GITHUB_ENV
+          echo "TARGET_NAME=$TARGET_NAME" >> $GITHUB_ENV
+
       - name: Configure
         run: |
           cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
@@ -242,51 +461,60 @@ jobs:
                 -G Ninja -B build -S .
 
       - name: Build
-        run: cmake --build build --target PDrum_All -j 6
+        run: cmake --build build --target ${{ env.TARGET_NAME }}_All -j
 
       - name: Package
         run: |
           mkdir -p package
-          mkdir -p dist
-          cp -r build/PDrum_artefacts/Release/Standalone/PDrum package/
-          cp -r build/PDrum_artefacts/Release/VST3/PDrum.vst3 package/
-          cd package && zip -r ../dist/PDrum-linux.zip *
-
-      - name: Print MD5 Checksums
-        run: |
-          md5sum build/PDrum_artefacts/Release/Standalone/PDrum > app_md5.txt
-          find build/PDrum_artefacts/Release/VST3/PDrum.vst3 -type f -exec md5sum {} \; | sort | md5sum > vst3_md5.txt
-          md5sum dist/PDrum-linux.zip > dist_md5.txt
-          cat app_md5.txt
-          cat vst3_md5.txt
-          cat dist_md5.txt
+          cp -r "build/${{ env.TARGET_NAME }}_artefacts/Release/Standalone/${{ env.PRODUCT_NAME }}" package/
+          cp -r "build/${{ env.TARGET_NAME }}_artefacts/Release/VST3/${{ env.PRODUCT_NAME }}.vst3" package/
+          cd package && zip -r "../${{ env.PRODUCT_NAME_U }}_linux.zip" *
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: PDrum-Linux
-          path: dist/PDrum-linux.zip
+          name: ${{ env.PRODUCT_NAME_U }}-Linux
+          path: ${{ env.PRODUCT_NAME_U }}_linux.zip
 
   release:
     needs: [ build-macos, build-windows, build-linux ]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update
+        run: sudo apt update
+
+      - name: Set Environment Variables
+        run: |
+          TAG_NAME=${{ github.ref_name }}
+          echo "VERSION_NUMBER=${TAG_NAME#v}" >> $GITHUB_ENV
+          BUNDLE_ID=$(sed -n 's/^set(JUCE_BUNDLE_ID[[:space:]]*"\(.*\)")/\1/p' CMakeLists.txt)
+          PRODUCT_NAME=$(sed -n 's/^set(JUCE_PRODUCT_NAME[[:space:]]*"\(.*\)")/\1/p' CMakeLists.txt)
+          TARGET_NAME=$(sed -n 's/^set(TARGET_NAME[[:space:]]*"\(.*\)")/\1/p' CMakeLists.txt)
+
+          echo "BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
+          echo "PRODUCT_NAME=$PRODUCT_NAME" >> $GITHUB_ENV
+          echo "PRODUCT_NAME_U=${PRODUCT_NAME// /_}" >> $GITHUB_ENV
+          echo "TARGET_NAME=$TARGET_NAME" >> $GITHUB_ENV
+
       - name: Download macOS artifact
         uses: actions/download-artifact@v4
         with:
-          name: PDrum-macOS
+          name: ${{ env.PRODUCT_NAME_U }}-macOS
           path: artifacts/
 
       - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
-          name: PDrum-Windows
+          name: ${{ env.PRODUCT_NAME_U }}-Windows
           path: artifacts/
 
       - name: Download Linux artifact
         uses: actions/download-artifact@v4
         with:
-          name: PDrum-Linux
+          name: ${{ env.PRODUCT_NAME_U }}-Linux
           path: artifacts/
 
       - name: Display downloaded files
@@ -298,9 +526,9 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           files: |
-            artifacts/PDrum-macos.zip
-            artifacts/PDrum-windows.zip
-            artifacts/PDrum-linux.zip
+            artifacts/${{ env.PRODUCT_NAME_U }}_macOS.pkg
+            artifacts/${{ env.PRODUCT_NAME_U }}_windows.zip
+            artifacts/${{ env.PRODUCT_NAME_U }}_linux.zip
           draft: false
           prerelease: false
           generate_release_notes: true

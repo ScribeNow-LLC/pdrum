@@ -28,7 +28,7 @@
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS_RELEASE": "-DNDEBUG -O3",
+        "CMAKE_CXX_FLAGS_RELEASE": "",
         "CMAKE_EXE_LINKER_FLAGS_RELEASE": ""
       }
     }

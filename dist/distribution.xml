@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="1">
+    <title>PDrum Installer</title>
+    <background file="background.png" alignment="bottomleft" scaling="tofit"/>
+    <welcome file="welcome.html"/>
+    <license file="license.txt"/>
+    <choices-outline>
+        <line choice="default"/>
+        <line choice="vst3"/>
+        <line choice="component"/>
+        <line choice="standalone"/>
+    </choices-outline>
+
+    <choice id="default" title="All Components" description="Install all components by default">
+        <pkg-ref id="com.scribenow.pdrum.vst3"/>
+        <pkg-ref id="com.scribenow.pdrum.component"/>
+    </choice>
+
+    <choice id="vst3" title="VST3 Plugin" description="Install the VST3 plugin">
+        <pkg-ref id="com.scribenow.pdrum.vst3"/>
+    </choice>
+
+    <choice id="component" title="AU Plugin" description="Install the Audio Unit (AU) plugin">
+        <pkg-ref id="com.scribenow.pdrum.component"/>
+    </choice>
+
+    <choice id="standalone" title="Standalone App" description="Install the Standalone version of the plugin">
+        <pkg-ref id="com.scribenow.pdrum.dmgpayload"/>
+    </choice>
+
+    <pkg-ref id="com.scribenow.pdrum.dmgpayload" auth="Root">PDrum_DMG.pkg</pkg-ref>
+    <pkg-ref id="com.scribenow.pdrum.vst3" auth="Root">PDrum_VST3.pkg</pkg-ref>
+    <pkg-ref id="com.scribenow.pdrum.component" auth="Root">PDrum_AU.pkg</pkg-ref>
+</installer-gui-script>
